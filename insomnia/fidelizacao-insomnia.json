@@ -1,0 +1,144 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-05-18T00:00:00.000Z",
+  "__export_source": "fidelizacao-gamificacao",
+  "resources": [
+    {
+      "_id": "wrk_fidelizacao",
+      "_type": "workspace",
+      "name": "Fidelização Gamificação",
+      "description": "API Node.js + Express"
+    },
+    {
+      "_id": "env_base",
+      "_type": "environment",
+      "parentId": "wrk_fidelizacao",
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:3000/api",
+        "token": ""
+      }
+    },
+    {
+      "_id": "fld_auth",
+      "_type": "request_group",
+      "parentId": "wrk_fidelizacao",
+      "name": "Auth"
+    },
+    {
+      "_id": "req_health",
+      "_type": "request",
+      "parentId": "wrk_fidelizacao",
+      "name": "Health",
+      "method": "GET",
+      "url": "{{ _.base_url }}/health"
+    },
+    {
+      "_id": "req_login",
+      "_type": "request",
+      "parentId": "fld_auth",
+      "name": "Login Cliente",
+      "method": "POST",
+      "url": "{{ _.base_url }}/auth/login",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"maria@email.com\",\n  \"senha\": \"cliente123\"\n}"
+      }
+    },
+    {
+      "_id": "req_login_admin",
+      "_type": "request",
+      "parentId": "fld_auth",
+      "name": "Login Admin",
+      "method": "POST",
+      "url": "{{ _.base_url }}/auth/login",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"admin@loja.com\",\n  \"senha\": \"admin123\"\n}"
+      }
+    },
+    {
+      "_id": "fld_cliente",
+      "_type": "request_group",
+      "parentId": "wrk_fidelizacao",
+      "name": "Cliente"
+    },
+    {
+      "_id": "req_perfil",
+      "_type": "request",
+      "parentId": "fld_cliente",
+      "name": "Perfil",
+      "method": "GET",
+      "url": "{{ _.base_url }}/auth/perfil",
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}"
+      }
+    },
+    {
+      "_id": "req_compras",
+      "_type": "request",
+      "parentId": "fld_cliente",
+      "name": "Registrar Compra",
+      "method": "POST",
+      "url": "{{ _.base_url }}/compras",
+      "authentication": { "type": "bearer", "token": "{{ _.token }}" },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"itens\": [\n    {\n      \"produto\": \"Cerveja Artesanal\",\n      \"categoria\": \"Bebidas\",\n      \"quantidade\": 6,\n      \"preco_unit\": 12.00\n    }\n  ]\n}"
+      }
+    },
+    {
+      "_id": "req_missoes",
+      "_type": "request",
+      "parentId": "fld_cliente",
+      "name": "Minhas Missões",
+      "method": "GET",
+      "url": "{{ _.base_url }}/missoes/minhas",
+      "authentication": { "type": "bearer", "token": "{{ _.token }}" }
+    },
+    {
+      "_id": "req_recompensas",
+      "_type": "request",
+      "parentId": "fld_cliente",
+      "name": "Listar Recompensas",
+      "method": "GET",
+      "url": "{{ _.base_url }}/recompensas",
+      "authentication": { "type": "bearer", "token": "{{ _.token }}" }
+    },
+    {
+      "_id": "req_recomendacoes",
+      "_type": "request",
+      "parentId": "fld_cliente",
+      "name": "Recomendações",
+      "method": "GET",
+      "url": "{{ _.base_url }}/recomendacoes",
+      "authentication": { "type": "bearer", "token": "{{ _.token }}" }
+    },
+    {
+      "_id": "fld_admin",
+      "_type": "request_group",
+      "parentId": "wrk_fidelizacao",
+      "name": "Admin"
+    },
+    {
+      "_id": "req_dashboard",
+      "_type": "request",
+      "parentId": "fld_admin",
+      "name": "Dashboard",
+      "method": "GET",
+      "url": "{{ _.base_url }}/admin/dashboard",
+      "authentication": { "type": "bearer", "token": "{{ _.token }}" }
+    },
+    {
+      "_id": "req_clientes",
+      "_type": "request",
+      "parentId": "fld_admin",
+      "name": "Listar Clientes",
+      "method": "GET",
+      "url": "{{ _.base_url }}/admin/clientes",
+      "authentication": { "type": "bearer", "token": "{{ _.token }}" }
+    }
+  ]
+}

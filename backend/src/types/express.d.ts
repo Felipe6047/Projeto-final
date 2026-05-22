@@ -1,9 +1,11 @@
-import { JwtPayload } from "../middleware/auth";
-
 declare global {
   namespace Express {
     interface Request {
-      user?: JwtPayload;
+      user?: {
+        id: number;
+        email: string;
+        nivelId: number;
+      };
     }
   }
 }

@@ -25,16 +25,23 @@ mysql -u root -p frik < database/seed.sql
 
 ## 2. Variáveis de ambiente
 
-Na pasta `backend`:
+Na pasta `backend`, crie o arquivo `.env` (se ainda não existir):
 
 ```powershell
 copy .env.example .env
 ```
 
-Edite o `.env` com sua senha do MySQL:
+**Obrigatório:** abra `.env` no editor e preencha a senha do MySQL:
 
 ```env
-DB_PASSWORD=sua_senha_aqui
+DB_PASSWORD=SUA_SENHA_DO_MYSQL
+```
+
+> Erro `Access denied for user 'root'@'localhost' (using password: NO)` = `DB_PASSWORD` está vazio ou errado.
+
+Use a **mesma senha** que você usa para abrir o MySQL Workbench.
+
+```env
 JWT_SECRET=um_segredo_longo_e_aleatorio
 ```
 
@@ -60,9 +67,13 @@ npm run build
 npm start
 ```
 
-A API ficará disponível em: **http://localhost:3333/api**
+| O que abrir no navegador | URL |
+|--------------------------|-----|
+| **Página inicial (links)** | http://localhost:3333/ |
+| **Swagger (testar API)** | http://localhost:3333/api/docs |
+| **API (JSON)** | http://localhost:3333/api/health |
 
-Teste rápido: `GET http://localhost:3333/api/health`
+> O projeto **não tem site de loja/fidelização na web ainda** — só a API. O frontend (`frontend/`) ainda não foi criado. Use Swagger ou Insomnia para testar.
 
 ## 5. Documentação Swagger
 
@@ -84,10 +95,16 @@ A documentação cobre todos os endpoints: Auth, Mercado de Cupons, Presentes, R
 1. Abra o Insomnia
 2. **Import** → selecione `insomnia/frik-api.json`
 3. No ambiente **FRIK Local**, confirme `base_url = http://localhost:3333`
-4. Execute **Auth → Login** com:
+4. Selecione o ambiente **FRIK Local** (canto superior esquerdo)
+5. Execute **Auth → Login** com:
    - Email: `ana@frik.demo`
    - Senha: `senha123`
-5. O token é salvo automaticamente na variável `token` para as demais rotas
+6. O token é salvo automaticamente na variável `token` para as demais rotas
+
+**Erro `email/senha Required` no Insomnia?** O body não chegou como JSON:
+- Aba **Body** → escolha **JSON** (não Text)
+- Aba **Headers** → confirme `Content-Type: application/json`
+- Ou reimporte `insomnia/frik-api.json` (versão atualizada já traz esse header)
 
 ## Usuários de teste (seed)
 

@@ -65,6 +65,10 @@
       "method": "POST",
       "url": "{{ _.base_url }}/api/auth/login",
       "parentId": "fld_auth",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Accept", "value": "application/json" }
+      ],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"email\": \"ana@frik.demo\",\n  \"senha\": \"senha123\"\n}"
@@ -78,6 +82,10 @@
       "method": "POST",
       "url": "{{ _.base_url }}/api/auth/registro",
       "parentId": "fld_auth",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Accept", "value": "application/json" }
+      ],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"nome\": \"Novo Usuario\",\n  \"email\": \"novo@frik.demo\",\n  \"senha\": \"senha123\",\n  \"telefone\": \"11988887777\"\n}"
@@ -139,6 +147,10 @@
       "url": "{{ _.base_url }}/api/mercado-cupons/solicitar-troca",
       "parentId": "fld_mercado",
       "authentication": { "type": "bearer", "token": "{{ _.token }}" },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Accept", "value": "application/json" }
+      ],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"cupomSolicitadoId\": 3,\n  \"cupomOfertadoId\": 1,\n  \"aceitarTaxa\": true\n}"
@@ -152,6 +164,10 @@
       "url": "{{ _.base_url }}/api/mercado-cupons/propostas/1",
       "parentId": "fld_mercado",
       "authentication": { "type": "bearer", "token": "{{ _.token }}" },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Accept", "value": "application/json" }
+      ],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"aceitar\": true\n}"
@@ -174,6 +190,10 @@
       "url": "{{ _.base_url }}/api/presentes/cupom",
       "parentId": "fld_presentes",
       "authentication": { "type": "bearer", "token": "{{ _.token }}" },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Accept", "value": "application/json" }
+      ],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"cupomId\": 2,\n  \"canal\": \"email\",\n  \"mensagem\": \"Parabéns! Um presente para você.\",\n  \"destinatarioNome\": \"Amigo\",\n  \"destinatarioEmail\": \"amigo@email.com\"\n}"
@@ -187,6 +207,10 @@
       "url": "{{ _.base_url }}/api/presentes/produto",
       "parentId": "fld_presentes",
       "authentication": { "type": "bearer", "token": "{{ _.token }}" },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Accept", "value": "application/json" }
+      ],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"itens\": [{ \"produtoId\": 1, \"quantidade\": 1 }],\n  \"pontosUsados\": 500,\n  \"valorReais\": 0,\n  \"destinatario\": {\n    \"nome\": \"Maria Souza\",\n    \"email\": \"maria@email.com\",\n    \"cpf\": \"44444444444\"\n  },\n  \"endereco\": {\n    \"cep\": \"01310100\",\n    \"logradouro\": \"Av. Paulista\",\n    \"numero\": \"1000\",\n    \"bairro\": \"Bela Vista\",\n    \"cidade\": \"São Paulo\",\n    \"uf\": \"SP\"\n  },\n  \"mensagem\": \"Feliz aniversário!\",\n  \"embrulho\": true,\n  \"enviarSurpresa\": false\n}"

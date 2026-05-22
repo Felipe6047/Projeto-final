@@ -1,12 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
+import { JwtPayload } from "../types/jwt";
 
-export interface JwtPayload {
-  id: number;
-  email: string;
-  nivelId: number;
-}
+export type { JwtPayload };
 
 export function authRequired(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization;

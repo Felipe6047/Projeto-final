@@ -1,31 +1,36 @@
 # FRIK — Frontend
 
-Repositório do front-end do **FRIK** (Sistema de Fidelização com Gamificação).
+Interface do **Sistema de Fidelização com Gamificação**, baseada nos layouts Stitch:
 
-> Repositório separado do backend. O backend está em `../backend`.
+- **Tema Elite (claro)** — `elite_loyalty_system` / Hanken Grotesk
+- **Tema Aureum (escuro)** — `aureum_elite` / Plus Jakarta Sans
 
-## Stack prevista (conforme especificação)
+Cores e estilos preservados (`#CC9544` primary-container, `#F2E8DA` cards no light, etc.).
 
-- React ou Next.js + TypeScript
-- Bootstrap 5
-- Chart.js
+## Rodar
 
-## Páginas planejadas
+```bash
+cd frontend
+npm install
+copy .env.local.example .env.local
+npm run dev
+```
 
-| Rota | Descrição |
-|------|-----------|
-| `/` | Início |
-| `/mercado-cupons` | Mercado de cupons e trocas |
-| `/presentes/produto` | Wizard de presente físico |
-| `/ranking` | Nível, ranking e benefícios |
-| Perfil | Dados do usuário |
+Abra **http://localhost:3000**
 
-## Paleta
+- Alternar tema: botão **Elite / Aureum** no header
+- Login: `/login` — `ana@frik.demo` / `senha123` (backend + seed)
 
-- Cor base: `#CC9544` (tons claros → mais escuros no fundo)
+## Páginas
 
-## Próximo passo
+| Rota | Layout Stitch |
+|------|----------------|
+| `/` | dashboard_frik_standardized_light / dark |
+| `/mercado-cupons` | mercado_de_cupons_* |
+| `/presentes` | enviar_presente_* |
+| `/ranking` | ranking_beneficios_* |
+| `/login` | Perfil / autenticação |
 
-Inicializar o projeto (ex.: `npx create-next-app@latest . --typescript`) e apontar `NEXT_PUBLIC_API_URL=http://localhost:3333/api` para o backend.
+## API
 
-Consulte o backend: [START_SERVER.md](../backend/START_SERVER.md)
+Configure `NEXT_PUBLIC_API_URL` apontando para o backend (`http://localhost:3333/api`).

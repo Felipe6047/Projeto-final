@@ -4,10 +4,9 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
+  useLayoutEffect,
   useState,
 } from "react";
-import { darkThemeVars, lightThemeVars } from "@/lib/theme-tokens";
 
 type Theme = "light" | "dark";
 
@@ -19,36 +18,38 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+function applyTheme(theme: Theme) {
+  const root = document.documentElement;
+  if (theme === "dark") {
+    root.classList.add("dark");
+  } else {
+    root.classList.remove("dark");
+  }
+  localStorage.setItem("frik-theme", theme);
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("light");
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const saved = localStorage.getItem("frik-theme") as Theme | null;
-    const initial = saved === "dark" ? "dark" : "light";
+    const initial: Theme = saved === "dark" ? "dark" : "light";
     setThemeState(initial);
-    setMounted(true);
+    applyTheme(initial);
   }, []);
 
-  useEffect(() => {
-    if (!mounted) return;
-    const root = document.documentElement;
-    root.classList.remove("light", "dark");
-    root.classList.add(theme);
-    const vars = theme === "light" ? lightThemeVars : darkThemeVars;
-    Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
-    localStorage.setItem("frik-theme", theme);
-  }, [theme, mounted]);
+  const setTheme = useCallback((t: Theme) => {
+    setThemeState(t);
+    applyTheme(t);
+  }, []);
 
-  const setTheme = useCallback((t: Theme) => setThemeState(t), []);
-  const toggleTheme = useCallback(
-    () => setThemeState((t) => (t === "light" ? "dark" : "light")),
-    []
-  );
-
-  if (!mounted) {
-    return <div className="min-h-screen bg-background" />;
-  }
+  const toggleTheme = useCallback(() => {
+    setThemeState((prev) => {
+      const next = prev === "light" ? "dark" : "light";
+      applyTheme(next);
+      return next;
+    });
+  }, []);
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>

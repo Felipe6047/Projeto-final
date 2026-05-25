@@ -51,7 +51,7 @@ const config: Config = {
         "headline-sm": ["24px", { lineHeight: "1.3", fontWeight: "600" }],
         "body-lg": ["18px", { lineHeight: "1.6", fontWeight: "400" }],
         "body-md": ["16px", { lineHeight: "1.5", fontWeight: "400" }],
-        "label-caps": ["12px", { lineHeight: "1", letterSpacing: "0.1em", fontWeight: "700" }],
+        "label-caps": ["12px", { lineHeight: "1.25", letterSpacing: "0.08em", fontWeight: "700" }],
         "stat-lg": ["40px", { lineHeight: "1", fontWeight: "700" }],
         "label-md": ["14px", { lineHeight: "20px", letterSpacing: "0.02em", fontWeight: "600" }],
       },

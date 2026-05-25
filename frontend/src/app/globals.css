@@ -2,9 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap");
+/* Fontes carregadas via <link> em layout.tsx (evita @import ignorado após @tailwind) */
 
-.light {
+/* Tema Elite (claro) — padrão em :root */
+:root {
   --background: #faf9f6;
   --surface: #faf9f6;
   --surface-container: #efeeeb;
@@ -22,6 +23,7 @@
   --secondary: #635e54;
   --secondary-container: #e6dfd2;
   --on-secondary-container: #676258;
+  --on-secondary-fixed: #1e1b13;
   --secondary-fixed: #e9e2d5;
   --secondary-fixed-dim: #cdc6b9;
   --tertiary-container: #a69e92;
@@ -32,7 +34,8 @@
   --font-sans: "Hanken Grotesk", system-ui, sans-serif;
 }
 
-.dark {
+/* Tema Aureum (escuro) */
+html.dark {
   --background: #141312;
   --surface: #141312;
   --surface-container: #201f1e;
@@ -50,6 +53,7 @@
   --secondary: #d4c3b9;
   --secondary-container: #52473f;
   --on-secondary-container: #c5b5ab;
+  --on-secondary-fixed: #221a13;
   --secondary-fixed: #f0dfd4;
   --secondary-fixed-dim: #d4c3b9;
   --tertiary-container: #af9c8f;
@@ -68,8 +72,33 @@ body {
 }
 
 .material-symbols-outlined {
+  font-family: "Material Symbols Outlined" !important;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.25em;
+  min-width: 1.25em;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "liga";
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
   vertical-align: middle;
+  user-select: none;
+}
+
+@layer components {
+  .frik-label {
+    @apply text-xs font-bold uppercase tracking-widest leading-normal;
+  }
 }
 
 .organic-blob {
@@ -85,7 +114,7 @@ body {
   box-shadow: 0 10px 30px rgba(33, 30, 22, 0.05);
 }
 
-.dark .premium-shadow {
+html.dark .premium-shadow {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
 }
 
@@ -98,13 +127,8 @@ body {
   box-shadow: 0 20px 40px rgba(130, 85, 3, 0.12);
 }
 
-.dark .hover-lift:hover {
+html.dark .hover-lift:hover {
   box-shadow: 0 20px 40px rgba(204, 149, 68, 0.15);
-}
-
-.bg-mesh {
-  background-image: radial-gradient(at 0% 0%, rgba(204, 149, 68, 0.05) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(204, 149, 68, 0.03) 0px, transparent 50%);
 }
 
 .scrollbar-hide::-webkit-scrollbar {

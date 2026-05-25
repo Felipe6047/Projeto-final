@@ -18,9 +18,10 @@ import {
 
 interface AuthContextValue {
   user: AuthUser | null;
-  perfil: { nome: string; pontos: number; nivel: string } | null;
+  perfil: { nome: string; pontos: number; nivel: string; papel: string } | null;
+  isAdmin: boolean;
   loading: boolean;
-  login: (email: string, senha: string) => Promise<void>;
+  login: (email: string, senha: string) => Promise<"admin" | "cliente">;
   logout: () => void;
   refreshPerfil: () => Promise<void>;
 }
@@ -33,6 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     nome: string;
     pontos: number;
     nivel: string;
+    papel: string;
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -40,13 +42,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!getToken()) return;
     try {
       const p = await getPerfil();
-      setPerfil({ nome: p.nome, pontos: p.pontos, nivel: p.nivel });
+      setPerfil({
+        nome: p.nome,
+        pontos: p.pontos,
+        nivel: p.nivel,
+        papel: p.papel ?? "cliente",
+      });
       setUser({
         id: p.id,
         nome: p.nome,
         email: p.email,
         nivelId: 0,
         pontos: p.pontos,
+        papel: p.papel ?? "cliente",
       });
     } catch {
       clearToken();
@@ -62,8 +70,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, senha: string) => {
     const res = await apiLogin(email, senha);
     setToken(res.token);
-    setUser(res.usuario);
+    const papel = res.usuario.papel ?? "cliente";
+    setUser({ ...res.usuario, papel });
+    setPerfil({
+      nome: res.usuario.nome,
+      pontos: res.usuario.pontos,
+      nivel: "",
+      papel,
+    });
     await refreshPerfil();
+    return papel as "admin" | "cliente";
   };
 
   const logout = () => {
@@ -74,7 +90,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, perfil, loading, login, logout, refreshPerfil }}
+      value={{
+        user,
+        perfil,
+        isAdmin: perfil?.papel === "admin" || user?.papel === "admin",
+        loading,
+        login,
+        logout,
+        refreshPerfil,
+      }}
     >
       {children}
     </AuthContext.Provider>

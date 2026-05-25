@@ -16,6 +16,14 @@ Abra o MySQL Workbench (ou linha de comando) e execute, nesta ordem:
 1. `database/schema.sql` — cria o banco `frik` e todas as tabelas
 2. `database/seed.sql` — dados iniciais (níveis, usuários de teste, cupons, produtos)
 
+**Banco já existente (sem coluna `papel`)?** Execute também:
+
+```powershell
+mysql -u root -p frik < database/migrations/001_admin_papel.sql
+```
+
+Depois crie o admin manualmente ou rode o trecho do admin no `seed.sql`.
+
 **Linha de comando (Windows):**
 
 ```powershell
@@ -113,6 +121,23 @@ A documentação cobre todos os endpoints: Auth, Mercado de Cupons, Presentes, R
 | Ana Silva    | ana@frik.demo     | senha123  | Ouro   |
 | Bruno Costa  | bruno@frik.demo   | senha123  | Prata  |
 | Carla Mendes | carla@frik.demo   | senha123  | Bronze |
+| Admin FRIK   | admin@frik.demo   | senha123  | Admin (painel) |
+
+## Painel admin (`/api/admin/*`)
+
+Requer login com `admin@frik.demo` e token JWT com `papel: admin`.
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/api/admin/dashboard` | KPIs gerenciais |
+| GET | `/api/admin/relatorios/segmentacao` | Clientes por nível |
+| CRUD | `/api/admin/campanhas` | Campanhas |
+| CRUD | `/api/admin/cupom-templates` | Templates de cupom |
+| CRUD | `/api/admin/produtos` | Catálogo |
+| CRUD | `/api/admin/missoes` | Missões |
+| CRUD | `/api/admin/eventos` | Eventos sazonais |
+
+No frontend: http://localhost:3000/admin
 
 ## Rotas principais
 

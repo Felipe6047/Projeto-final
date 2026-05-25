@@ -4,6 +4,7 @@ import mercadoRoutes from "./mercado.routes";
 import presentesRoutes from "./presentes.routes";
 import rankingRoutes from "./ranking.routes";
 import produtosRoutes from "./produtos.routes";
+import adminRoutes from "./admin.routes";
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use("/mercado-cupons", mercadoRoutes);
 router.use("/presentes", presentesRoutes);
 router.use("/ranking", rankingRoutes);
 router.use("/produtos", produtosRoutes);
+router.use("/admin", adminRoutes);
 
 export default router;

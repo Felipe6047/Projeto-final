@@ -5,6 +5,7 @@ declare global {
         id: number;
         email: string;
         nivelId: number;
+        papel: "cliente" | "admin";
       };
     }
   }

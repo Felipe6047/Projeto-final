@@ -27,13 +27,19 @@ INSERT INTO missao (titulo, descricao, pontos_recompensa, meta_valor, tipo_meta)
 ('Presenteie alguém', 'Envie um cupom de presente',        150, 1, 'presentes');
 
 -- Senha de teste: senha123 (bcrypt)
-INSERT INTO usuario (nome, email, telefone, cpf, senha_hash, nivel_id, pontos) VALUES
+INSERT INTO usuario (nome, email, telefone, cpf, senha_hash, nivel_id, pontos, papel) VALUES
 ('Ana Silva',    'ana@frik.demo',    '11999990001', '11111111111',
- '$2b$10$sUHWjH2s8ZU8AI4tHwyYnedwIZPfY836.hcGfw2rQI2ijNSiWDHT.', 3, 2500),
+ '$2b$10$sUHWjH2s8ZU8AI4tHwyYnedwIZPfY836.hcGfw2rQI2ijNSiWDHT.', 3, 2500, 'cliente'),
 ('Bruno Costa',  'bruno@frik.demo',  '11999990002', '22222222222',
- '$2b$10$sUHWjH2s8ZU8AI4tHwyYnedwIZPfY836.hcGfw2rQI2ijNSiWDHT.', 2,  800),
+ '$2b$10$sUHWjH2s8ZU8AI4tHwyYnedwIZPfY836.hcGfw2rQI2ijNSiWDHT.', 2,  800, 'cliente'),
 ('Carla Mendes', 'carla@frik.demo',  '11999990003', '33333333333',
- '$2b$10$sUHWjH2s8ZU8AI4tHwyYnedwIZPfY836.hcGfw2rQI2ijNSiWDHT.', 1,  120);
+ '$2b$10$sUHWjH2s8ZU8AI4tHwyYnedwIZPfY836.hcGfw2rQI2ijNSiWDHT.', 1,  120, 'cliente'),
+('Admin FRIK',   'admin@frik.demo',  '11999990000', '00000000000',
+ '$2b$10$sUHWjH2s8ZU8AI4tHwyYnedwIZPfY836.hcGfw2rQI2ijNSiWDHT.', 5, 0, 'admin');
+
+INSERT INTO campanha (titulo, descricao, segmento_json, inicio_em, fim_em, ativa) VALUES
+('Boas-vindas Bronze', 'Bônus para novos membros nível Bronze', '{"nivel_slug":["bronze"]}',
+ DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_ADD(NOW(), INTERVAL 30 DAY), 1);
 
 INSERT INTO cupom_usuario (usuario_id, template_id, codigo, status, validade_ate, origem) VALUES
 (1, 1, 'FRIK-ANA-001', 'disponivel', DATE_ADD(CURDATE(), INTERVAL 25 DAY), 'compra'),

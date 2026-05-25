@@ -12,11 +12,12 @@ interface UsuarioRow extends RowDataPacket {
   senha_hash: string;
   nivel_id: number;
   pontos: number;
+  papel: "cliente" | "admin";
 }
 
 export async function login(email: string, senha: string) {
   const [rows] = await pool.query<UsuarioRow[]>(
-    `SELECT id, nome, email, senha_hash, nivel_id, pontos
+    `SELECT id, nome, email, senha_hash, nivel_id, pontos, papel
      FROM usuario WHERE email = :email AND ativo = 1 LIMIT 1`,
     { email }
   );
@@ -31,6 +32,7 @@ export async function login(email: string, senha: string) {
     id: user.id,
     email: user.email,
     nivelId: user.nivel_id,
+    papel: user.papel ?? "cliente",
   };
 
   const signOptions: SignOptions = { expiresIn: env.jwt.expiresIn as SignOptions["expiresIn"] };
@@ -44,6 +46,7 @@ export async function login(email: string, senha: string) {
       email: user.email,
       nivelId: user.nivel_id,
       pontos: user.pontos,
+      papel: user.papel ?? "cliente",
     },
   };
 }
@@ -74,7 +77,7 @@ export async function registrar(data: {
 
 export async function buscarPerfil(usuarioId: number) {
   const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT u.id, u.nome, u.email, u.telefone, u.cpf, u.pontos, u.avatar_url,
+    `SELECT u.id, u.nome, u.email, u.telefone, u.cpf, u.pontos, u.avatar_url, u.papel,
             n.nome AS nivel, n.slug AS nivel_slug, n.ordem AS nivel_ordem
      FROM usuario u
      JOIN nivel_fidelidade n ON n.id = u.nivel_id

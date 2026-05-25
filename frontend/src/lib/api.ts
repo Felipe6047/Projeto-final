@@ -49,12 +49,15 @@ export async function api<T>(
   return data as T;
 }
 
+export type PapelUsuario = "cliente" | "admin";
+
 export interface AuthUser {
   id: number;
   nome: string;
   email: string;
   nivelId: number;
   pontos: number;
+  papel?: PapelUsuario;
 }
 
 export interface LoginResponse {
@@ -69,6 +72,7 @@ export interface PerfilResponse {
   pontos: number;
   nivel: string;
   nivel_slug: string;
+  papel?: PapelUsuario;
 }
 
 export interface Cupom {
@@ -210,6 +214,202 @@ export async function criarPedidoPresente(body: {
     method: "POST",
     body: JSON.stringify(body),
   });
+}
+
+// --- Admin ---
+export interface AdminDashboard {
+  clientesAtivos: number;
+  trocasConcluidas: number;
+  trocasPendentes: number;
+  ticketMedio: number;
+  cuponsAtivos: number;
+  pedidosPendentes: number;
+  campanhasAtivas: number;
+}
+
+export async function adminGetDashboard() {
+  return api<AdminDashboard>("/admin/dashboard");
+}
+
+export async function adminGetSegmentacao() {
+  return api<
+    {
+      nivel: string;
+      nivel_slug: string;
+      total_clientes: number;
+      pontos_totais: number;
+      media_pontos: number;
+    }[]
+  >("/admin/relatorios/segmentacao");
+}
+
+export async function adminListCampanhas() {
+  return api<CampanhaAdmin[]>("/admin/campanhas");
+}
+
+export async function adminCreateCampanha(body: Partial<CampanhaAdmin>) {
+  return api<{ id: number }>("/admin/campanhas", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function adminUpdateCampanha(id: number, body: Partial<CampanhaAdmin>) {
+  return api<{ ok: boolean }>(`/admin/campanhas/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function adminDeleteCampanha(id: number) {
+  return api<{ ok: boolean }>(`/admin/campanhas/${id}`, { method: "DELETE" });
+}
+
+export interface CampanhaAdmin {
+  id?: number;
+  titulo: string;
+  descricao?: string;
+  segmento_json?: Record<string, unknown>;
+  inicio_em: string;
+  fim_em: string;
+  ativa?: boolean | number;
+}
+
+export interface CupomTemplateAdmin {
+  id?: number;
+  titulo: string;
+  descricao?: string;
+  categoria: string;
+  desconto_percentual?: number;
+  desconto_valor?: number;
+  valor_minimo_compra?: number;
+  dias_validade?: number;
+  ativo?: boolean | number;
+}
+
+export async function adminListCupomTemplates() {
+  return api<CupomTemplateAdmin[]>("/admin/cupom-templates");
+}
+
+export async function adminCreateCupomTemplate(body: Omit<CupomTemplateAdmin, "id">) {
+  return api<{ id: number }>("/admin/cupom-templates", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function adminUpdateCupomTemplate(
+  id: number,
+  body: Partial<CupomTemplateAdmin>
+) {
+  return api<{ ok: boolean }>(`/admin/cupom-templates/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function adminDeleteCupomTemplate(id: number) {
+  return api<{ ok: boolean }>(`/admin/cupom-templates/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export interface ProdutoAdmin {
+  id?: number;
+  nome: string;
+  descricao?: string;
+  preco_reais: number;
+  preco_pontos: number;
+  estoque?: number;
+  ativo?: boolean | number;
+}
+
+export async function adminListProdutos() {
+  return api<ProdutoAdmin[]>("/admin/produtos");
+}
+
+export async function adminCreateProduto(body: Omit<ProdutoAdmin, "id">) {
+  return api<{ id: number }>("/admin/produtos", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function adminUpdateProduto(id: number, body: Partial<ProdutoAdmin>) {
+  return api<{ ok: boolean }>(`/admin/produtos/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function adminDeleteProduto(id: number) {
+  return api<{ ok: boolean }>(`/admin/produtos/${id}`, { method: "DELETE" });
+}
+
+export interface MissaoAdmin {
+  id?: number;
+  titulo: string;
+  descricao?: string;
+  pontos_recompensa: number;
+  meta_valor?: number;
+  tipo_meta: "compras" | "trocas" | "presentes" | "pontos";
+  ativa?: boolean | number;
+  inicio_em?: string;
+  fim_em?: string;
+}
+
+export async function adminListMissoes() {
+  return api<MissaoAdmin[]>("/admin/missoes");
+}
+
+export async function adminCreateMissao(body: Omit<MissaoAdmin, "id">) {
+  return api<{ id: number }>("/admin/missoes", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function adminUpdateMissao(id: number, body: Partial<MissaoAdmin>) {
+  return api<{ ok: boolean }>(`/admin/missoes/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function adminDeleteMissao(id: number) {
+  return api<{ ok: boolean }>(`/admin/missoes/${id}`, { method: "DELETE" });
+}
+
+export interface EventoAdmin {
+  id?: number;
+  titulo: string;
+  descricao?: string;
+  trocas_extras?: number;
+  inicio_em: string;
+  fim_em: string;
+  ativo?: boolean | number;
+}
+
+export async function adminListEventos() {
+  return api<EventoAdmin[]>("/admin/eventos");
+}
+
+export async function adminCreateEvento(body: Omit<EventoAdmin, "id">) {
+  return api<{ id: number }>("/admin/eventos", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function adminUpdateEvento(id: number, body: Partial<EventoAdmin>) {
+  return api<{ ok: boolean }>(`/admin/eventos/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function adminDeleteEvento(id: number) {
+  return api<{ ok: boolean }>(`/admin/eventos/${id}`, { method: "DELETE" });
 }
 
 export function formatarStatus(status: string) {

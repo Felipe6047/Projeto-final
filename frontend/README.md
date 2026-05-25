@@ -19,7 +19,8 @@ npm run dev
 Abra **http://localhost:3000**
 
 - Alternar tema: botão **Elite / Aureum** no header
-- Login: `/login` — `ana@frik.demo` / `senha123` (backend + seed)
+- Login cliente: `/login` — `ana@frik.demo` / `senha123`
+- Login admin: `/login` — `admin@frik.demo` / `senha123` → redireciona para `/admin`
 
 ## Páginas
 
@@ -30,6 +31,17 @@ Abra **http://localhost:3000**
 | `/presentes` | enviar_presente_* |
 | `/ranking` | ranking_beneficios_* |
 | `/login` | Perfil / autenticação |
+
+### Painel administrativo
+
+| Rota | Função |
+|------|--------|
+| `/admin` | Dashboard (KPIs + segmentação) |
+| `/admin/campanhas` | CRUD campanhas |
+| `/admin/cupons` | CRUD templates de cupom |
+| `/admin/produtos` | CRUD catálogo |
+| `/admin/missoes` | CRUD missões |
+| `/admin/eventos` | CRUD eventos sazonais |
 
 ## API
 

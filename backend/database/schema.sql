@@ -41,6 +41,7 @@ CREATE TABLE usuario (
   pontos          INT UNSIGNED     NOT NULL DEFAULT 0,
   avatar_url      VARCHAR(500)     NULL,
   ativo           TINYINT(1)       NOT NULL DEFAULT 1,
+  papel           ENUM('cliente', 'admin') NOT NULL DEFAULT 'cliente',
   criado_em       DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
   atualizado_em   DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),

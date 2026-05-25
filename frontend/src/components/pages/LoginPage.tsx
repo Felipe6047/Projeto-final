@@ -8,7 +8,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { ApiError } from "@/lib/api";
 
 export function LoginPage() {
-  const { login, perfil, logout, loading } = useAuth();
+  const { login, perfil, logout, loading, isAdmin } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("ana@frik.demo");
   const [senha, setSenha] = useState("senha123");
@@ -20,8 +20,8 @@ export function LoginPage() {
     setErro("");
     setSubmitting(true);
     try {
-      await login(email, senha);
-      router.push("/");
+      const papel = await login(email, senha);
+      router.push(papel === "admin" ? "/admin" : "/");
     } catch (e) {
       setErro(
         (e as ApiError).message ??
@@ -62,10 +62,10 @@ export function LoginPage() {
             </p>
             <button
               type="button"
-              onClick={() => router.push("/")}
+              onClick={() => router.push(isAdmin ? "/admin" : "/")}
               className="w-full bg-primary text-on-primary py-4 rounded-full font-bold"
             >
-              Ir para o início
+              {isAdmin ? "Ir para o painel admin" : "Ir para o início"}
             </button>
             <button
               type="button"
@@ -119,7 +119,7 @@ export function LoginPage() {
               {submitting ? "Entrando..." : "Entrar"}
             </button>
             <p className="text-center text-xs text-on-surface-variant">
-              Teste: ana@frik.demo / senha123 (com backend e seed no MySQL)
+              Cliente: ana@frik.demo / senha123 · Admin: admin@frik.demo / senha123
             </p>
           </form>
         )}

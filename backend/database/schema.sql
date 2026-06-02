@@ -1,5 +1,8 @@
 -- FRIK - Sistema de Fidelização com Gamificação
 -- MySQL 8+
+--
+-- LEGADO: use `npm run db:migrate` e `src/entities/` + `src/database/migrations/` (TypeORM).
+-- Este arquivo permanece apenas como referência.
 
 CREATE DATABASE IF NOT EXISTS frik
   CHARACTER SET utf8mb4

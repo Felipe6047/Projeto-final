@@ -4,12 +4,13 @@ import routes from "./routes";
 import homeRoutes from "./routes/home.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { setupSwagger } from "./swagger/setup";
+import { env } from "./config/env";
 
 const app = express();
 
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+    origin: env.corsOrigin,
     credentials: true,
   })
 );

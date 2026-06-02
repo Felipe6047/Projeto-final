@@ -4,10 +4,19 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/context/AuthContext";
-import { getEventoAtivo, getMeuNivel } from "@/lib/api";
+import { useToast } from "@/context/ToastContext";
+import {
+  ApiError,
+  getEventoAtivo,
+  getMeuNivel,
+  registrarCompra,
+} from "@/lib/api";
 
 export function DashboardPage() {
-  const { perfil } = useAuth();
+  const { perfil, refreshPerfil } = useAuth();
+  const { toast } = useToast();
+  const [valorCompra, setValorCompra] = useState("99.90");
+  const [registrando, setRegistrando] = useState(false);
   const [nivel, setNivel] = useState<{
     nome: string;
     progresso_percentual: number;
@@ -22,6 +31,25 @@ export function DashboardPage() {
 
   const primeiroNome = perfil?.nome?.split(" ")[0] ?? "Membro";
   const pontos = perfil?.pontos ?? nivel?.pontos ?? 0;
+
+  async function simularCompra() {
+    const valor = Number(valorCompra.replace(",", "."));
+    if (!valor || valor <= 0) {
+      toast("Informe um valor válido", "error");
+      return;
+    }
+    setRegistrando(true);
+    try {
+      const res = await registrarCompra(valor);
+      toast(`+${res.pontosGerados} pontos creditados!`, "success");
+      await refreshPerfil();
+      getMeuNivel().then(setNivel).catch(() => null);
+    } catch (e) {
+      toast((e as ApiError).message, "error");
+    } finally {
+      setRegistrando(false);
+    }
+  }
 
   return (
     <AppShell>
@@ -111,6 +139,32 @@ export function DashboardPage() {
             <h4 className="text-2xl font-semibold mt-1">
               {nivel?.nome ?? perfil?.nivel ?? "Bronze"}
             </h4>
+          </div>
+        </section>
+
+        <section className="mb-16 bg-surface-container-low rounded-2xl p-6 border border-outline-variant/30 max-w-xl">
+          <p className="frik-label text-primary mb-2">Simular compra</p>
+          <p className="text-sm text-on-surface-variant mb-4">
+            Registre uma compra e ganhe pontos (10 pts por R$ 1,00).
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={valorCompra}
+              onChange={(e) => setValorCompra(e.target.value)}
+              className="flex-1 bg-surface-container-high rounded-xl px-4 py-3"
+              placeholder="Valor em R$"
+            />
+            <button
+              type="button"
+              disabled={registrando}
+              onClick={simularCompra}
+              className="bg-primary text-on-primary px-6 py-3 rounded-full font-bold disabled:opacity-50"
+            >
+              {registrando ? "..." : "Creditar"}
+            </button>
           </div>
         </section>
 

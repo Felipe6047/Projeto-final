@@ -1,13 +1,9 @@
-import mysql from "mysql2/promise";
-import { env } from "./env";
+import { AppDataSource } from "./data-source";
 
-export const pool = mysql.createPool({
-  host: env.db.host,
-  port: env.db.port,
-  user: env.db.user,
-  password: env.db.password,
-  database: env.db.database,
-  waitForConnections: true,
-  connectionLimit: 10,
-  namedPlaceholders: true,
-});
+export { AppDataSource };
+
+export async function initializeDatabase(): Promise<void> {
+  if (!AppDataSource.isInitialized) {
+    await AppDataSource.initialize();
+  }
+}

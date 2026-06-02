@@ -51,4 +51,14 @@ router.get("/perfil", authRequired, async (req, res, next) => {
   }
 });
 
+router.get("/historico-pontos", authRequired, async (req, res, next) => {
+  try {
+    const limite = Math.min(Number(req.query.limite) || 30, 100);
+    const historico = await authService.historicoPontos(req.user!.id, limite);
+    return ok(res, historico);
+  } catch (e) {
+    next(e);
+  }
+});
+
 export default router;

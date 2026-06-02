@@ -6,6 +6,30 @@ import { fail, ok } from "../utils/http";
 
 const router = Router();
 
+router.get("/cupom/:codigo", async (req, res, next) => {
+  try {
+    const result = await presenteService.buscarPresentePorCodigo(req.params.codigo);
+    if (!result) return fail(res, "Presente não encontrado", 404);
+    if ("erro" in result) return fail(res, result.erro!);
+    return ok(res, result);
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post("/cupom/:codigo/resgatar", authRequired, async (req, res, next) => {
+  try {
+    const result = await presenteService.resgatarPresenteCupom(
+      req.user!.id,
+      req.params.codigo
+    );
+    if ("erro" in result) return fail(res, result.erro!);
+    return ok(res, result);
+  } catch (e) {
+    next(e);
+  }
+});
+
 router.use(authRequired);
 
 router.post("/cupom", async (req, res, next) => {

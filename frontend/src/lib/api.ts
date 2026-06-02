@@ -69,10 +69,135 @@ export interface PerfilResponse {
   id: number;
   nome: string;
   email: string;
+  telefone?: string | null;
+  cpf?: string | null;
   pontos: number;
   nivel: string;
   nivel_slug: string;
+  nivel_ordem?: number;
+  avatar_url?: string | null;
   papel?: PapelUsuario;
+}
+
+export interface HistoricoPontosItem {
+  id: string;
+  valor: number;
+  saldo_apos: number;
+  tipo: string;
+  descricao: string | null;
+  criado_em: string;
+}
+
+export async function getHistoricoPontos(limite = 30) {
+  return api<HistoricoPontosItem[]>(`/auth/historico-pontos?limite=${limite}`);
+}
+
+export async function registrarCompra(valorTotal: number) {
+  return api<{
+    compraId: string;
+    valorTotal: number;
+    pontosGerados: number;
+    saldoPontos: number;
+  }>("/compra", {
+    method: "POST",
+    body: JSON.stringify({ valorTotal }),
+  });
+}
+
+export async function listarCompras(limite = 10) {
+  return api<
+    {
+      id: string;
+      valor_total: string;
+      pontos_gerados: number;
+      criado_em: string;
+    }[]
+  >(`/compra?limite=${limite}`);
+}
+
+export interface Notificacao {
+  id: string;
+  titulo: string;
+  mensagem: string;
+  tipo: string;
+  lida: boolean;
+  criado_em: string;
+}
+
+export async function getNotificacoes(apenasNaoLidas = false) {
+  return api<{ notificacoes: Notificacao[]; naoLidas: number }>(
+    `/notificacoes${apenasNaoLidas ? "?apenasNaoLidas=1" : ""}`
+  );
+}
+
+export async function marcarNotificacaoLida(id: string) {
+  return api<{ lida: boolean }>(`/notificacoes/${id}/lida`, { method: "PATCH" });
+}
+
+export async function marcarTodasNotificacoesLidas() {
+  return api<{ atualizadas: number }>("/notificacoes/lidas", { method: "PATCH" });
+}
+
+export async function getPresentePorCodigo(codigo: string) {
+  return api<{
+    id: string;
+    status: string;
+    mensagem: string | null;
+    destinatarioNome: string | null;
+    cupom: { codigo: string; titulo: string; categoria: string; validadeAte: string };
+    remetenteNome: string;
+  }>(`/presentes/cupom/${codigo}`);
+}
+
+export async function resgatarPresenteCupom(codigo: string) {
+  return api<{ cupomId: string; codigo: string; titulo: string }>(
+    `/presentes/cupom/${codigo}/resgatar`,
+    { method: "POST" }
+  );
+}
+
+export async function getTodasConquistas() {
+  return api<
+    {
+      slug: string;
+      nome: string;
+      descricao: string;
+      icone: string;
+      desbloqueada: number;
+      desbloqueada_em: string | null;
+    }[]
+  >("/ranking/conquistas?todas=1");
+}
+
+export async function listarMinhasSalas() {
+  return api<
+    { id: number; nome: string; codigo_convite: string; criado_em: string }[]
+  >("/salas");
+}
+
+export async function criarSala(nome: string) {
+  return api<{ salaId: number; nome: string; codigoConvite: string }>("/salas", {
+    method: "POST",
+    body: JSON.stringify({ nome }),
+  });
+}
+
+export async function entrarSala(codigo: string) {
+  return api<{ salaId: number; nome: string; codigoConvite: string }>(
+    `/salas/${codigo}/entrar`,
+    { method: "POST" }
+  );
+}
+
+export async function detalheSala(codigo: string) {
+  return api<{
+    id: number;
+    nome: string;
+    codigo_convite: string;
+    criador_nome: string;
+    membros: { id: number; nome: string }[];
+    totalMembros: number;
+  }>(`/salas/${codigo}`);
 }
 
 export interface Cupom {
@@ -195,20 +320,32 @@ export async function presentearCupom(body: {
   mensagem?: string;
   destinatarioNome?: string;
   destinatarioEmail?: string;
+  destinatarioTelefone?: string;
+  destinatarioCpf?: string;
 }) {
-  return api<{ presenteId: number; codigoResgate: string }>("/presentes/cupom", {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
+  return api<{ presenteId: number; codigoResgate: string; link?: string }>(
+    "/presentes/cupom",
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    }
+  );
 }
 
 export async function criarPedidoPresente(body: {
   itens: { produtoId: number; quantidade: number }[];
   pontosUsados: number;
   valorReais: number;
-  destinatario: { nome: string; email?: string };
+  destinatario: {
+    nome: string;
+    email?: string;
+    telefone?: string;
+    cpf?: string;
+  };
   endereco: Record<string, string>;
   mensagem?: string;
+  embrulho?: boolean;
+  enviarSurpresa?: boolean;
 }) {
   return api<{ pedidoId: number; status: string }>("/presentes/produto", {
     method: "POST",

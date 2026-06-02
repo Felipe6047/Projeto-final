@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { ModalTroca } from "@/components/modals/ModalTroca";
+import { ModalPresenteCupom } from "@/components/modals/ModalPresenteCupom";
 import { useToast } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -13,6 +14,7 @@ import {
   getMercadoConfig,
   getMercadoCupons,
   oferecerCupom,
+  presentearCupom,
   solicitarTroca,
 } from "@/lib/api";
 
@@ -23,6 +25,7 @@ export function MercadoPage() {
   const [mercado, setMercado] = useState<Cupom[]>([]);
   const [taxa, setTaxa] = useState(50);
   const [trocaAlvo, setTrocaAlvo] = useState<Cupom | null>(null);
+  const [presenteCupom, setPresenteCupom] = useState<Cupom | null>(null);
   const [loading, setLoading] = useState(true);
 
   const carregar = useCallback(async (busca?: string) => {
@@ -137,18 +140,27 @@ export function MercadoPage() {
                         {new Date(c.validade_ate).toLocaleDateString("pt-BR")}
                       </p>
                     </div>
-                    <div className="pt-4 border-t border-outline-variant/30 flex justify-between items-center gap-2">
+                    <div className="pt-4 border-t border-outline-variant/30 flex flex-wrap justify-between items-center gap-2">
                       <span className="text-xs font-bold text-primary tracking-wider">
                         {c.codigo}
                       </span>
                       {c.status === "disponivel" && (
-                        <button
-                          type="button"
-                          onClick={() => handleOferecer(c.id)}
-                          className="text-sm font-bold text-primary hover:underline"
-                        >
-                          Oferecer troca
-                        </button>
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setPresenteCupom(c)}
+                            className="text-sm font-bold text-on-surface-variant hover:text-primary"
+                          >
+                            Presentear
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOferecer(c.id)}
+                            className="text-sm font-bold text-primary hover:underline"
+                          >
+                            Oferecer troca
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -208,6 +220,27 @@ export function MercadoPage() {
           taxaPontos={taxa}
           onClose={() => setTrocaAlvo(null)}
           onConfirm={handleSolicitar}
+        />
+      )}
+
+      {presenteCupom && (
+        <ModalPresenteCupom
+          cupom={presenteCupom}
+          onClose={() => setPresenteCupom(null)}
+          onConfirm={async (data) => {
+            try {
+              const res = await presentearCupom({
+                cupomId: presenteCupom.id,
+                ...data,
+              });
+              toast(`Presente criado! Código: ${res.codigoResgate}`, "success");
+              await carregar();
+              await refreshPerfil();
+            } catch (e) {
+              toast((e as ApiError).message, "error");
+              throw e;
+            }
+          }}
         />
       )}
     </AppShell>

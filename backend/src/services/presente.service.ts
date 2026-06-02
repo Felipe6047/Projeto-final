@@ -1,6 +1,17 @@
 import crypto from "crypto";
-import { RowDataPacket, ResultSetHeader } from "mysql2";
-import { pool } from "../config/database";
+import { AppDataSource } from "../config/database";
+import { Usuario } from "../entities/Usuario";
+import { CupomUsuario } from "../entities/CupomUsuario";
+import { PresenteCupom } from "../entities/PresenteCupom";
+import { PedidoPresente } from "../entities/PedidoPresente";
+import { PedidoPresenteItem } from "../entities/PedidoPresenteItem";
+import { Produto } from "../entities/Produto";
+import { CupomTemplate } from "../entities/CupomTemplate";
+import {
+  criarNotificacao,
+  incrementarMissao,
+  verificarConquistas,
+} from "./gamificacao.service";
 
 export async function presentearCupom(data: {
   remetenteId: number;
@@ -12,67 +23,72 @@ export async function presentearCupom(data: {
   destinatarioCpf?: string;
   destinatarioNome?: string;
 }) {
-  const [nivel] = await pool.query<RowDataPacket[]>(
-    `SELECT n.pode_presentear_cupom FROM usuario u
-     JOIN nivel_fidelidade n ON n.id = u.nivel_id
-     WHERE u.id = :id`,
-    { id: data.remetenteId }
-  );
-  if (!nivel[0]?.pode_presentear_cupom) {
+  const nivel = await AppDataSource.getRepository(Usuario)
+    .createQueryBuilder("u")
+    .innerJoin("u.nivel", "n")
+    .select("n.podePresentearCupom", "pode_presentear_cupom")
+    .where("u.id = :id", { id: data.remetenteId })
+    .getRawOne<{ pode_presentear_cupom: boolean }>();
+
+  if (!nivel?.pode_presentear_cupom) {
     return { erro: "Seu nível não permite presentear cupons" };
   }
 
-  const [cupom] = await pool.query<RowDataPacket[]>(
-    `SELECT id, status FROM cupom_usuario
-     WHERE id = :cupomId AND usuario_id = :remetenteId AND status = 'disponivel'`,
-    { cupomId: data.cupomId, remetenteId: data.remetenteId }
-  );
-  if (!cupom[0]) return { erro: "Cupom indisponível para presente" };
+  const cupom = await AppDataSource.getRepository(CupomUsuario).findOne({
+    where: {
+      id: String(data.cupomId),
+      usuarioId: data.remetenteId,
+      status: "disponivel",
+    },
+  });
+  if (!cupom) return { erro: "Cupom indisponível para presente" };
 
   let destinatarioId: number | null = null;
   if (data.destinatarioCpf || data.destinatarioEmail) {
-    const [dest] = await pool.query<RowDataPacket[]>(
-      `SELECT id FROM usuario
-       WHERE (:cpf IS NOT NULL AND cpf = :cpf)
-          OR (:email IS NOT NULL AND email = :email)
-       LIMIT 1`,
-      {
-        cpf: data.destinatarioCpf ?? null,
-        email: data.destinatarioEmail ?? null,
-      }
-    );
-    destinatarioId = dest[0]?.id ?? null;
+    const dest = await AppDataSource.getRepository(Usuario)
+      .createQueryBuilder("u")
+      .where(
+        "(:cpf IS NOT NULL AND u.cpf = :cpf) OR (:email IS NOT NULL AND u.email = :email)",
+        {
+          cpf: data.destinatarioCpf ?? null,
+          email: data.destinatarioEmail ?? null,
+        }
+      )
+      .limit(1)
+      .getOne();
+    destinatarioId = dest?.id ?? null;
   }
 
   const codigo = crypto.randomBytes(16).toString("hex");
-  const [insert] = await pool.query<ResultSetHeader>(
-    `INSERT INTO presente_cupom
-      (cupom_id, remetente_id, destinatario_id, destinatario_nome,
-       destinatario_email, destinatario_telefone, destinatario_cpf,
-       canal, mensagem, codigo_resgate)
-     VALUES (:cupomId, :remetenteId, :destinatarioId, :nome,
-             :email, :telefone, :cpf, :canal, :mensagem, :codigo)`,
-    {
-      cupomId: data.cupomId,
-      remetenteId: data.remetenteId,
-      destinatarioId,
-      nome: data.destinatarioNome ?? null,
-      email: data.destinatarioEmail ?? null,
-      telefone: data.destinatarioTelefone ?? null,
-      cpf: data.destinatarioCpf ?? null,
-      canal: data.canal,
-      mensagem: data.mensagem ?? null,
-      codigo,
-    }
-  );
+  const presente = await AppDataSource.getRepository(PresenteCupom).save({
+    cupomId: String(data.cupomId),
+    remetenteId: data.remetenteId,
+    destinatarioId,
+    destinatarioNome: data.destinatarioNome ?? null,
+    destinatarioEmail: data.destinatarioEmail ?? null,
+    destinatarioTelefone: data.destinatarioTelefone ?? null,
+    destinatarioCpf: data.destinatarioCpf ?? null,
+    canal: data.canal,
+    mensagem: data.mensagem ?? null,
+    codigoResgate: codigo,
+    status: "enviado",
+  });
 
-  await pool.query(
-    `UPDATE cupom_usuario SET status = 'presenteado' WHERE id = :cupomId`,
-    { cupomId: data.cupomId }
-  );
+  cupom.status = "presenteado";
+  await AppDataSource.getRepository(CupomUsuario).save(cupom);
+
+  await incrementarMissao(data.remetenteId, "presentes");
+  if (destinatarioId) {
+    await criarNotificacao(
+      destinatarioId,
+      "Você ganhou um presente!",
+      `${data.destinatarioNome ?? "Alguém"} enviou um cupom para você.`,
+      "presente"
+    );
+  }
 
   return {
-    presenteId: insert.insertId,
+    presenteId: presente.id,
     codigoResgate: codigo,
     link: `/presentes/cupom/${codigo}`,
   };
@@ -95,90 +111,188 @@ export async function criarPedidoPresente(data: {
   embrulho?: boolean;
   enviarSurpresa?: boolean;
 }) {
-  const [nivel] = await pool.query<RowDataPacket[]>(
-    `SELECT n.pode_presentear_produto, n.valor_max_presente FROM usuario u
-     JOIN nivel_fidelidade n ON n.id = u.nivel_id WHERE u.id = :id`,
-    { id: data.remetenteId }
-  );
-  const n = nivel[0];
-  if (!n?.pode_presentear_produto) {
+  const nivel = await AppDataSource.getRepository(Usuario)
+    .createQueryBuilder("u")
+    .innerJoin("u.nivel", "n")
+    .select([
+      "n.podePresentearProduto AS pode_presentear_produto",
+      "n.valorMaxPresente AS valor_max_presente",
+    ])
+    .where("u.id = :id", { id: data.remetenteId })
+    .getRawOne<{
+      pode_presentear_produto: boolean;
+      valor_max_presente: string | null;
+    }>();
+
+  if (!nivel?.pode_presentear_produto) {
     return { erro: "Seu nível não permite presentear produtos físicos" };
   }
-  if (n.valor_max_presente !== null && data.valorReais > Number(n.valor_max_presente)) {
-    return { erro: `Valor máximo para presente no seu nível: R$ ${n.valor_max_presente}` };
+  if (
+    nivel.valor_max_presente !== null &&
+    data.valorReais > Number(nivel.valor_max_presente)
+  ) {
+    return {
+      erro: `Valor máximo para presente no seu nível: R$ ${nivel.valor_max_presente}`,
+    };
   }
 
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
-    const [pedido] = await conn.query<ResultSetHeader>(
-      `INSERT INTO pedido_presente
-        (remetente_id, destinatario_id, destinatario_nome, destinatario_email,
-         destinatario_telefone, destinatario_cpf, endereco_json, mensagem,
-         embrulho, enviar_surpresa, valor_reais, pontos_usados, status)
-       VALUES (:remetenteId, :destId, :nome, :email, :tel, :cpf,
-               :endereco, :msg, :embrulho, :surpresa, :valor, :pontos, 'pago')`,
-      {
-        remetenteId: data.remetenteId,
-        destId: data.destinatario.usuarioId ?? null,
-        nome: data.destinatario.nome,
-        email: data.destinatario.email ?? null,
-        tel: data.destinatario.telefone ?? null,
-        cpf: data.destinatario.cpf ?? null,
-        endereco: JSON.stringify(data.endereco),
-        msg: data.mensagem ?? null,
-        embrulho: data.embrulho ? 1 : 0,
-        surpresa: data.enviarSurpresa ? 1 : 0,
-        valor: data.valorReais,
-        pontos: data.pontosUsados,
-      }
-    );
+  return AppDataSource.transaction(async (manager) => {
+    const pedido = await manager.getRepository(PedidoPresente).save({
+      remetenteId: data.remetenteId,
+      destinatarioId: data.destinatario.usuarioId ?? null,
+      destinatarioNome: data.destinatario.nome,
+      destinatarioEmail: data.destinatario.email ?? null,
+      destinatarioTelefone: data.destinatario.telefone ?? null,
+      destinatarioCpf: data.destinatario.cpf ?? null,
+      enderecoJson: data.endereco,
+      mensagem: data.mensagem ?? null,
+      embrulho: data.embrulho ?? false,
+      enviarSurpresa: data.enviarSurpresa ?? false,
+      valorReais: String(data.valorReais),
+      pontosUsados: data.pontosUsados,
+      status: "pago",
+    });
 
     for (const item of data.itens) {
-      const [prod] = await conn.query<RowDataPacket[]>(
-        `SELECT preco_reais, preco_pontos FROM produto WHERE id = :id AND ativo = 1`,
-        { id: item.produtoId }
-      );
-      if (!prod[0]) throw new Error("Produto inválido");
-      await conn.query(
-        `INSERT INTO pedido_presente_item
-          (pedido_id, produto_id, quantidade, preco_unitario, pontos_unitarios)
-         VALUES (:pedidoId, :produtoId, :qtd, :preco, :pontos)`,
-        {
-          pedidoId: pedido.insertId,
-          produtoId: item.produtoId,
-          qtd: item.quantidade,
-          preco: prod[0].preco_reais,
-          pontos: prod[0].preco_pontos,
-        }
-      );
+      const prod = await manager.getRepository(Produto).findOne({
+        where: { id: item.produtoId, ativo: true },
+      });
+      if (!prod) throw new Error("Produto inválido");
+
+      await manager.getRepository(PedidoPresenteItem).save({
+        pedidoId: pedido.id,
+        produtoId: item.produtoId,
+        quantidade: item.quantidade,
+        precoUnitario: prod.precoReais,
+        pontosUnitarios: prod.precoPontos,
+      });
     }
 
     if (data.pontosUsados > 0) {
-      await conn.query(
-        `UPDATE usuario SET pontos = pontos - :pontos WHERE id = :id`,
-        { pontos: data.pontosUsados, id: data.remetenteId }
+      await manager
+        .getRepository(Usuario)
+        .decrement({ id: data.remetenteId }, "pontos", data.pontosUsados);
+    }
+
+    await incrementarMissao(data.remetenteId, "presentes", 1, manager);
+
+    return { pedidoId: pedido.id, status: "pago" };
+  });
+}
+
+export async function buscarPresentePorCodigo(codigo: string) {
+  const presente = await AppDataSource.getRepository(PresenteCupom)
+    .createQueryBuilder("p")
+    .innerJoin("p.cupom", "cu")
+    .innerJoin("cu.template", "ct")
+    .innerJoin("p.remetente", "r")
+    .select([
+      "p.id AS id",
+      "p.status AS status",
+      "p.mensagem AS mensagem",
+      "p.destinatarioNome AS destinatario_nome",
+      "p.canal AS canal",
+      "cu.codigo AS cupom_codigo",
+      "cu.validadeAte AS validade_ate",
+      "ct.titulo AS cupom_titulo",
+      "ct.categoria AS cupom_categoria",
+      "r.nome AS remetente_nome",
+    ])
+    .where("p.codigoResgate = :codigo", { codigo })
+    .getRawOne();
+
+  if (!presente) return null;
+  if (presente.status === "expirado") return { erro: "Presente expirado" };
+  if (presente.status === "resgatado") return { erro: "Presente já resgatado" };
+
+  return {
+    id: presente.id,
+    status: presente.status,
+    mensagem: presente.mensagem,
+    destinatarioNome: presente.destinatario_nome,
+    canal: presente.canal,
+    cupom: {
+      codigo: presente.cupom_codigo,
+      titulo: presente.cupom_titulo,
+      categoria: presente.cupom_categoria,
+      validadeAte: presente.validade_ate,
+    },
+    remetenteNome: presente.remetente_nome,
+  };
+}
+
+export async function resgatarPresenteCupom(usuarioId: number, codigo: string) {
+  return AppDataSource.transaction(async (manager) => {
+    const presenteRepo = manager.getRepository(PresenteCupom);
+    const presente = await presenteRepo.findOne({
+      where: { codigoResgate: codigo, status: "enviado" },
+      relations: ["cupom"],
+    });
+
+    if (!presente) return { erro: "Presente inválido ou já resgatado" };
+
+    const cupom = presente.cupom;
+    if (!cupom || cupom.status !== "presenteado") {
+      return { erro: "Cupom não disponível para resgate" };
+    }
+
+    cupom.usuarioId = usuarioId;
+    cupom.status = "disponivel";
+    cupom.origem = "presente";
+    await manager.getRepository(CupomUsuario).save(cupom);
+
+    presente.status = "resgatado";
+    presente.destinatarioId = usuarioId;
+    await presenteRepo.save(presente);
+
+    await criarNotificacao(
+      usuarioId,
+      "Presente resgatado!",
+      `O cupom ${cupom.codigo} foi adicionado à sua carteira.`,
+      "presente",
+      manager
+    );
+
+    if (presente.remetenteId !== usuarioId) {
+      await criarNotificacao(
+        presente.remetenteId,
+        "Presente resgatado",
+        "Seu presente de cupom foi resgatado pelo destinatário.",
+        "presente",
+        manager
       );
     }
 
-    await conn.commit();
-    return { pedidoId: pedido.insertId, status: "pago" };
-  } catch (e) {
-    await conn.rollback();
-    throw e;
-  } finally {
-    conn.release();
-  }
+    await verificarConquistas(presente.remetenteId, manager);
+
+    const template = await manager.getRepository(CupomTemplate).findOne({
+      where: { id: cupom.templateId },
+    });
+
+    return {
+      cupomId: cupom.id,
+      codigo: cupom.codigo,
+      titulo: template?.titulo ?? "Cupom",
+    };
+  });
 }
 
 export async function listarPedidosPresente(usuarioId: number) {
-  const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT id, destinatario_nome, status, valor_reais, pontos_usados,
-            codigo_rastreio, criado_em, atualizado_em
-     FROM pedido_presente
-     WHERE remetente_id = :usuarioId OR destinatario_id = :usuarioId
-     ORDER BY criado_em DESC`,
-    { usuarioId }
-  );
-  return rows;
+  return AppDataSource.getRepository(PedidoPresente)
+    .createQueryBuilder("p")
+    .select([
+      "p.id AS id",
+      "p.destinatarioNome AS destinatario_nome",
+      "p.status AS status",
+      "p.valorReais AS valor_reais",
+      "p.pontosUsados AS pontos_usados",
+      "p.codigoRastreio AS codigo_rastreio",
+      "p.criadoEm AS criado_em",
+      "p.atualizadoEm AS atualizado_em",
+    ])
+    .where("p.remetenteId = :usuarioId OR p.destinatarioId = :usuarioId", {
+      usuarioId,
+    })
+    .orderBy("p.criadoEm", "DESC")
+    .getRawMany();
 }

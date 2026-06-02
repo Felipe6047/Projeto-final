@@ -42,6 +42,10 @@ router.get("/meu-nivel", authRequired, async (req, res, next) => {
 
 router.get("/conquistas", authRequired, async (req, res, next) => {
   try {
+    const todas = req.query.todas === "1";
+    if (todas) {
+      return ok(res, await rankingService.todasConquistasComStatus(req.user!.id));
+    }
     return ok(res, await rankingService.minhasConquistas(req.user!.id));
   } catch (e) {
     next(e);

@@ -1,16 +1,17 @@
+import "reflect-metadata";
 import app from "./app";
 import { env } from "./config/env";
-import { pool } from "./config/database";
+import { initializeDatabase } from "./config/database";
 
 async function bootstrap() {
   try {
-    await pool.query("SELECT 1");
-    console.log("MySQL conectado");
+    await initializeDatabase();
+    console.log("MySQL conectado (TypeORM)");
   } catch (err) {
     console.error("\n[FRIK] Falha ao conectar no MySQL.\n");
     console.error("1. Crie/edite o arquivo backend/.env (copie de .env.example)");
     console.error("2. Defina DB_PASSWORD com a senha do seu MySQL (Workbench)");
-    console.error("3. Execute database/schema.sql e database/seed.sql no MySQL\n");
+    console.error("3. Execute: npm run db:migrate && npm run db:seed\n");
     console.error(err);
     process.exit(1);
   }

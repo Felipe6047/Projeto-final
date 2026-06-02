@@ -1,7 +1,13 @@
 "use client";
 
+import { useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  NotificationsPanel,
+  useNotificacoesCount,
+} from "@/components/notifications/NotificationsPanel";
 
 interface TopHeaderProps {
   placeholder?: string;
@@ -13,6 +19,8 @@ export function TopHeader({
   onSearch,
 }: TopHeaderProps) {
   const { perfil } = useAuth();
+  const [notifOpen, setNotifOpen] = useState(false);
+  const naoLidas = useNotificacoesCount();
   const nome = perfil?.nome ?? "Visitante";
   const nivel = perfil?.nivel ?? "—";
   const pontos = perfil?.pontos ?? 0;
@@ -39,13 +47,22 @@ export function TopHeader({
         <ThemeToggle />
         <button
           type="button"
+          onClick={() => setNotifOpen(true)}
           className="relative p-2 text-on-surface-variant hover:text-primary transition-colors"
           aria-label="Notificações"
         >
           <span className="material-symbols-outlined">notifications</span>
-          <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full" />
+          {naoLidas > 0 && (
+            <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+              {naoLidas > 9 ? "9+" : naoLidas}
+            </span>
+          )}
         </button>
-        <div className="hidden sm:flex items-center gap-3 border-l border-outline-variant pl-4">
+        <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
+        <Link
+          href="/perfil"
+          className="hidden sm:flex items-center gap-3 border-l border-outline-variant pl-4 hover:opacity-90 transition-opacity"
+        >
           <div className="text-right">
             <p className="font-bold text-on-surface leading-tight text-sm max-w-[140px] truncate">
               {nome}
@@ -57,7 +74,7 @@ export function TopHeader({
           <div className="w-10 h-10 rounded-full border-2 border-primary-container bg-secondary-container flex items-center justify-center text-primary font-bold shrink-0">
             {nome.charAt(0).toUpperCase()}
           </div>
-        </div>
+        </Link>
       </div>
     </header>
   );

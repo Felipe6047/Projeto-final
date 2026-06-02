@@ -1,17 +1,35 @@
 import { Router } from "express";
-import { RowDataPacket } from "mysql2";
-import { pool } from "../config/database";
+import { AppDataSource } from "../config/database";
+import { Produto } from "../entities/Produto";
 import { ok } from "../utils/http";
 
 const router = Router();
 
 router.get("/", async (_req, res, next) => {
   try {
-    const [rows] = await pool.query<RowDataPacket[]>(
-      `SELECT id, nome, descricao, preco_reais, preco_pontos, estoque, imagem_url
-       FROM produto WHERE ativo = 1 ORDER BY nome`
-    );
-    return ok(res, rows);
+    const rows = await AppDataSource.getRepository(Produto).find({
+      where: { ativo: true },
+      order: { nome: "ASC" },
+      select: {
+        id: true,
+        nome: true,
+        descricao: true,
+        precoReais: true,
+        precoPontos: true,
+        estoque: true,
+        imagemUrl: true,
+      },
+    });
+    const mapped = rows.map((p) => ({
+      id: p.id,
+      nome: p.nome,
+      descricao: p.descricao,
+      preco_reais: p.precoReais,
+      preco_pontos: p.precoPontos,
+      estoque: p.estoque,
+      imagem_url: p.imagemUrl,
+    }));
+    return ok(res, mapped);
   } catch (e) {
     next(e);
   }
@@ -19,13 +37,28 @@ router.get("/", async (_req, res, next) => {
 
 router.get("/:id", async (req, res, next) => {
   try {
-    const [rows] = await pool.query<RowDataPacket[]>(
-      `SELECT id, nome, descricao, preco_reais, preco_pontos, estoque, imagem_url
-       FROM produto WHERE id = :id AND ativo = 1`,
-      { id: Number(req.params.id) }
-    );
-    if (!rows[0]) return res.status(404).json({ erro: "Produto não encontrado" });
-    return ok(res, rows[0]);
+    const produto = await AppDataSource.getRepository(Produto).findOne({
+      where: { id: Number(req.params.id), ativo: true },
+      select: {
+        id: true,
+        nome: true,
+        descricao: true,
+        precoReais: true,
+        precoPontos: true,
+        estoque: true,
+        imagemUrl: true,
+      },
+    });
+    if (!produto) return res.status(404).json({ erro: "Produto não encontrado" });
+    return ok(res, {
+      id: produto.id,
+      nome: produto.nome,
+      descricao: produto.descricao,
+      preco_reais: produto.precoReais,
+      preco_pontos: produto.precoPontos,
+      estoque: produto.estoque,
+      imagem_url: produto.imagemUrl,
+    });
   } catch (e) {
     next(e);
   }

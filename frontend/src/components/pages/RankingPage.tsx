@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/context/AuthContext";
-import { getBeneficios, getMeuNivel, getRankingGlobal } from "@/lib/api";
+import {
+  getBeneficios,
+  getMeuNivel,
+  getRankingGlobal,
+  getTodasConquistas,
+} from "@/lib/api";
 
 export function RankingPage() {
   const { perfil } = useAuth();
@@ -17,11 +22,21 @@ export function RankingPage() {
     progresso_percentual: number;
     nome: string;
   } | null>(null);
+  const [conquistas, setConquistas] = useState<
+    {
+      slug: string;
+      nome: string;
+      descricao: string;
+      icone: string;
+      desbloqueada: number;
+    }[]
+  >([]);
 
   useEffect(() => {
     getRankingGlobal(10).then(setRanking).catch(() => []);
     getBeneficios().then(setBeneficios).catch(() => []);
     getMeuNivel().then(setNivel).catch(() => null);
+    getTodasConquistas().then(setConquistas).catch(() => []);
   }, []);
 
   return (
@@ -81,6 +96,30 @@ export function RankingPage() {
             </ul>
           </div>
         </section>
+
+        {conquistas.length > 0 && (
+          <section className="mb-16">
+            <h3 className="text-2xl font-semibold mb-6">Conquistas</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {conquistas.map((c) => (
+                <div
+                  key={c.slug}
+                  className={`p-6 rounded-2xl text-center premium-shadow ${
+                    c.desbloqueada
+                      ? "bg-primary-container/20 border border-primary-container"
+                      : "bg-surface-container-high opacity-50 grayscale"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-4xl text-primary mb-2">
+                    {c.icone}
+                  </span>
+                  <p className="font-bold">{c.nome}</p>
+                  <p className="text-xs text-on-surface-variant mt-1">{c.descricao}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section>
           <h3 className="text-2xl font-semibold mb-6">Classificação</h3>

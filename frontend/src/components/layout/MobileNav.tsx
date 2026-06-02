@@ -8,7 +8,7 @@ const items = [
   { href: "/mercado-cupons", icon: "shopping_bag", label: "Mercado" },
   { href: "/presentes", icon: "redeem", label: "Presentes" },
   { href: "/ranking", icon: "military_tech", label: "Ranking" },
-  { href: "/login", icon: "person", label: "Perfil" },
+  { href: "/perfil", icon: "person", label: "Perfil" },
 ];
 
 export function MobileNav() {

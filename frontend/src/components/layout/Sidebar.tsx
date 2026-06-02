@@ -9,7 +9,8 @@ const nav = [
   { href: "/mercado-cupons", label: "Mercado de Cupons", icon: "shopping_bag" },
   { href: "/presentes", label: "Presentes", icon: "redeem" },
   { href: "/ranking", label: "Ranking", icon: "military_tech" },
-  { href: "/login", label: "Perfil", icon: "person" },
+  { href: "/salas", label: "Salas de troca", icon: "groups" },
+  { href: "/perfil", label: "Perfil", icon: "person" },
 ];
 
 export function Sidebar() {

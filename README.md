@@ -1,10 +1,68 @@
 # Projeto FRIK - Sistema de Fidelização com Gamificação
 
-Este é um projeto completo contendo um **Frontend** (Next.js) e um **Backend** (Node.js/Express + TypeORM + MySQL). Siga as instruções abaixo para configurar e rodar o projeto localmente.
+Este é um projeto completo contendo um **Frontend** (Next.js) e um **Backend** (Node.js/Express + TypeORM + MySQL).
 
 ---
 
-## 1. Pré-requisitos
+## Rodar com Docker (recomendado — Linux e Windows)
+
+A forma mais simples de subir tudo (MySQL + API + frontend) em qualquer máquina:
+
+### Pré-requisitos
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows/macOS) ou Docker Engine + Docker Compose (Linux)
+
+### Comandos
+
+Na raiz do repositório:
+
+```bash
+docker compose up --build
+```
+
+Na primeira execução o Compose baixa imagens, compila os serviços, cria o banco, roda migrações e seed automaticamente.
+
+Para rodar em segundo plano:
+
+```bash
+docker compose up --build -d
+```
+
+Para parar:
+
+```bash
+docker compose down
+```
+
+Para apagar também o volume do MySQL (banco zerado na próxima subida):
+
+```bash
+docker compose down -v
+```
+
+### URLs
+
+| Serviço   | URL |
+|-----------|-----|
+| Frontend  | http://localhost:3000 |
+| API       | http://localhost:3333/api |
+| Swagger   | http://localhost:3333/api/docs |
+
+Credenciais de teste (após o seed): `admin@frik.demo` / `senha123` e `ana@frik.demo` / `senha123`.
+
+### Variáveis opcionais
+
+Copie `.env.docker.example` para `.env` na raiz se quiser alterar portas, senhas do MySQL ou `JWT_SECRET`. O arquivo `.env` é ignorado pelo Git.
+
+---
+
+## Rodar localmente (sem Docker)
+
+Siga as instruções abaixo se preferir Node.js e MySQL instalados na máquina.
+
+---
+
+## 1. Pré-requisitos (instalação local)
 
 Certifique-se de ter os seguintes softwares instalados na sua máquina:
 - **Node.js** (versão 18 ou superior recomendada)

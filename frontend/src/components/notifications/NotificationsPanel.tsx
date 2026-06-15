@@ -13,7 +13,7 @@ interface NotificationsPanelProps {
   onClose: () => void;
 }
 
-export function NotificationsPanel({ open, onClose }: NotificationsPanelProps) {
+export function NotificationsPanel({ open, onClose, onUpdateCount }: NotificationsPanelProps & { onUpdateCount?: (count: number) => void }) {
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [naoLidas, setNaoLidas] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -24,6 +24,7 @@ export function NotificationsPanel({ open, onClose }: NotificationsPanelProps) {
       const data = await getNotificacoes();
       setNotificacoes(data.notificacoes);
       setNaoLidas(data.naoLidas);
+      onUpdateCount?.(data.naoLidas);
     } catch {
       setNotificacoes([]);
     } finally {
@@ -98,14 +99,3 @@ export function NotificationsPanel({ open, onClose }: NotificationsPanelProps) {
   );
 }
 
-export function useNotificacoesCount() {
-  const [naoLidas, setNaoLidas] = useState(0);
-
-  useEffect(() => {
-    getNotificacoes()
-      .then((d) => setNaoLidas(d.naoLidas))
-      .catch(() => setNaoLidas(0));
-  }, []);
-
-  return naoLidas;
-}

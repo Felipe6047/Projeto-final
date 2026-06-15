@@ -13,6 +13,7 @@ import { PedidoPresenteItem } from "./PedidoPresenteItem";
 
 export type StatusPedidoPresente =
   | "pendente"
+  | "aguardando_pagamento"
   | "pago"
   | "enviado"
   | "a_caminho"
@@ -61,8 +62,34 @@ export class PedidoPresente {
   pontosUsados!: number;
 
   @Column({
+    name: "wallet_usado",
+    type: "decimal",
+    precision: 10,
+    scale: 2,
+    default: 0,
+  })
+  walletUsado!: string;
+
+  @Column({
+    name: "valor_pix",
+    type: "decimal",
+    precision: 10,
+    scale: 2,
+    default: 0,
+  })
+  valorPix!: string;
+
+  @Column({
     type: "enum",
-    enum: ["pendente", "pago", "enviado", "a_caminho", "entregue", "cancelado"],
+    enum: [
+      "pendente",
+      "aguardando_pagamento",
+      "pago",
+      "enviado",
+      "a_caminho",
+      "entregue",
+      "cancelado",
+    ],
     default: "pendente",
   })
   status!: StatusPedidoPresente;

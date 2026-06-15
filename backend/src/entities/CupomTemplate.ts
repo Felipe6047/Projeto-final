@@ -1,4 +1,4 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn, CreateDateColumn } from "typeorm";
 import { CupomUsuario } from "./CupomUsuario";
 
 @Entity("cupom_template")
@@ -30,8 +30,20 @@ export class CupomTemplate {
   @Column({ name: "dias_validade", type: "smallint", unsigned: true, default: 30 })
   diasValidade!: number;
 
+  @Column({ name: "preco_pontos", type: "int", unsigned: true, default: 500 })
+  precoPontos!: number;
+
   @Column({ type: "tinyint", width: 1, default: 1 })
   ativo!: boolean;
+
+  @Column({ name: "limite_por_usuario", type: "int", unsigned: true, nullable: true })
+  limitePorUsuario!: number | null;
+
+  @Column({ name: "limite_total", type: "int", unsigned: true, nullable: true })
+  limiteTotal!: number | null;
+
+  @CreateDateColumn({ name: "criado_em" })
+  criadoEm!: Date;
 
   @OneToMany(() => CupomUsuario, (c) => c.template)
   cupons!: CupomUsuario[];

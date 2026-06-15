@@ -71,6 +71,8 @@ router.post("/produto", async (req, res, next) => {
           .min(1),
         pontosUsados: z.number().int().nonnegative().default(0),
         valorReais: z.number().nonnegative(),
+        walletUsado: z.number().nonnegative().optional(),
+        valorPix: z.number().nonnegative().optional(),
         destinatario: z.object({
           nome: z.string().min(2),
           email: z.string().email().optional(),
@@ -91,6 +93,32 @@ router.post("/produto", async (req, res, next) => {
     });
     if ("erro" in result) return fail(res, result.erro!);
     return ok(res, result, 201);
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post("/pedidos/:id/confirmar-pagamento", async (req, res, next) => {
+  try {
+    const result = await presenteService.confirmarPagamentoPedido(
+      req.user!.id,
+      req.params.id
+    );
+    if ("erro" in result) return fail(res, result.erro!);
+    return ok(res, result);
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.patch("/pedidos/:id/status", async (req, res, next) => {
+  try {
+    const result = await presenteService.avancarStatusPedido(
+      req.user!.id,
+      req.params.id
+    );
+    if ("erro" in result) return fail(res, result.erro!);
+    return ok(res, result);
   } catch (e) {
     next(e);
   }

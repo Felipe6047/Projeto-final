@@ -160,3 +160,22 @@ Com o banco de dados populado, você pode acessar o sistema utilizando os seguin
 **Cliente:**
 - Email: `ana@frik.demo`
 - Senha: `senha123`
+
+---
+
+## 6. Testes Automatizados (Frontend)
+
+O frontend foi equipado com testes automatizados utilizando **Jest** e **React Testing Library**, visando cobertura de renderização condicional, responsividade e **Acessibilidade (A11y)** via `jest-axe`.
+
+Para rodar os testes localmente via Docker (recomendado):
+```bash
+docker run --rm -v %cd%\frontend:/app -w /app node:20-alpine sh -c "npm ci && npx jest"
+```
+*(No Linux/Mac, utilize `$(pwd)` no lugar de `%cd%`)*
+
+Para rodar caso tenha o Node.js/NPM local instalado:
+```bash
+cd frontend
+npm install
+npm run test
+```

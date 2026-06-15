@@ -9,6 +9,7 @@ import {
   incrementarMissao,
   verificarConquistas,
 } from "./gamificacao.service";
+import { creditarCashbackCompra } from "./wallet.service";
 
 export async function registrarCompra(usuarioId: number, valorTotal: number) {
   if (valorTotal <= 0) return { erro: "Valor da compra deve ser positivo" };
@@ -49,6 +50,7 @@ export async function registrarCompra(usuarioId: number, valorTotal: number) {
       manager
     );
 
+    await creditarCashbackCompra(usuarioId, valorTotal, manager);
     await atualizarNivelPorPontos(usuarioId, manager);
     await incrementarMissao(usuarioId, "compras", 1, manager);
     await incrementarMissao(usuarioId, "pontos", pontosGerados, manager);

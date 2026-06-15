@@ -7,6 +7,7 @@ import { Conquista } from "../entities/Conquista";
 import { UsuarioConquista } from "../entities/UsuarioConquista";
 import { UsuarioMissao } from "../entities/UsuarioMissao";
 import { Missao } from "../entities/Missao";
+import { HistoricoPontos } from "../entities/HistoricoPontos";
 import { PresenteCupom } from "../entities/PresenteCupom";
 import { PropostaTroca } from "../entities/PropostaTroca";
 
@@ -97,6 +98,15 @@ export async function incrementarMissao(
         where: { id: usuarioId },
         select: ["pontos"],
       });
+      await em.getRepository(HistoricoPontos).save({
+        usuarioId,
+        valor: missao.pontosRecompensa,
+        saldoApos: u.pontos,
+        tipo: "missao",
+        referenciaTipo: "missao",
+        referenciaId: String(missao.id),
+        descricao: `Missão concluída: ${missao.titulo}`,
+      });
       await em.getRepository(Notificacao).save({
         usuarioId,
         titulo: "Missão concluída!",
@@ -104,7 +114,6 @@ export async function incrementarMissao(
         tipo: "missao",
         lida: false,
       });
-      void u;
     }
     await em.getRepository(UsuarioMissao).save(um);
   }

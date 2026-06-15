@@ -11,6 +11,7 @@ const nav = [
   { href: "/admin/produtos", label: "Produtos", icon: "inventory_2" },
   { href: "/admin/missoes", label: "Missões", icon: "flag" },
   { href: "/admin/eventos", label: "Eventos", icon: "celebration" },
+  { href: "/admin/conquistas", label: "Conquistas", icon: "emoji_events" },
 ];
 
 export function AdminSidebar() {

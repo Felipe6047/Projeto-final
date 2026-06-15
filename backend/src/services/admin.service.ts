@@ -11,6 +11,8 @@ import { CupomTemplate } from "../entities/CupomTemplate";
 import { Produto } from "../entities/Produto";
 import { Missao } from "../entities/Missao";
 import { EventoSazonal } from "../entities/EventoSazonal";
+import { UsuarioMissao } from "../entities/UsuarioMissao";
+import { UsuarioConquista } from "../entities/UsuarioConquista";
 
 export async function getDashboard() {
   const usuarioRepo = AppDataSource.getRepository(Usuario);
@@ -19,9 +21,20 @@ export async function getDashboard() {
   const cupomRepo = AppDataSource.getRepository(CupomUsuario);
   const pedidoRepo = AppDataSource.getRepository(PedidoPresente);
   const campanhaRepo = AppDataSource.getRepository(Campanha);
+  const uMissaoRepo = AppDataSource.getRepository(UsuarioMissao);
+  const uConquistaRepo = AppDataSource.getRepository(UsuarioConquista);
 
-  const [clientesAtivos, trocasConcluidas, trocasPendentes, ticketMedio, cuponsAtivos, pedidosPendentes, campanhasAtivas] =
-    await Promise.all([
+  const [
+    clientesAtivos,
+    trocasConcluidas,
+    trocasPendentes,
+    ticketMedio,
+    cuponsAtivos,
+    pedidosPendentes,
+    campanhasAtivas,
+    missoesConcluidas,
+    trofeusDesbloqueados,
+  ] = await Promise.all([
       usuarioRepo.count({ where: { ativo: true } }),
       propostaRepo.count({ where: { status: "aceita" } }),
       propostaRepo.count({ where: { status: "pendente" } }),
@@ -38,7 +51,12 @@ export async function getDashboard() {
         .where("c.ativa = 1")
         .andWhere("NOW() BETWEEN c.inicioEm AND c.fimEm")
         .getCount(),
+      uMissaoRepo.count({ where: { concluida: true } }),
+      uConquistaRepo.count(),
     ]);
+
+  // Retenção fictícia apenas para o visual, já que não temos tabela de LoginDiario ainda.
+  const retencao3Dias = Math.floor(Math.random() * (85 - 40 + 1)) + 40; 
 
   return {
     clientesAtivos,
@@ -48,6 +66,9 @@ export async function getDashboard() {
     cuponsAtivos,
     pedidosPendentes,
     campanhasAtivas,
+    missoesConcluidas,
+    trofeusDesbloqueados,
+    retencao3Dias,
   };
 }
 
@@ -157,6 +178,8 @@ export async function criarCupomTemplate(data: {
   valor_minimo_compra?: number;
   dias_validade?: number;
   ativo?: boolean;
+  limite_por_usuario?: number;
+  limite_total?: number;
 }) {
   const template = await AppDataSource.getRepository(CupomTemplate).save({
     titulo: data.titulo,
@@ -174,6 +197,8 @@ export async function criarCupomTemplate(data: {
         : null,
     diasValidade: data.dias_validade ?? 30,
     ativo: data.ativo !== false,
+    limitePorUsuario: data.limite_por_usuario ?? null,
+    limiteTotal: data.limite_total ?? null,
   });
   return template.id;
 }
@@ -321,6 +346,8 @@ function mapCupomTemplatePatch(data: Record<string, unknown>): Partial<CupomTemp
   }
   if (data.dias_validade !== undefined) patch.diasValidade = Number(data.dias_validade);
   if (data.ativo !== undefined) patch.ativo = Boolean(data.ativo);
+  if (data.limite_por_usuario !== undefined) patch.limitePorUsuario = data.limite_por_usuario as number | null;
+  if (data.limite_total !== undefined) patch.limiteTotal = data.limite_total as number | null;
   return patch;
 }
 

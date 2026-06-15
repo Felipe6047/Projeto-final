@@ -4,6 +4,7 @@ import { AdminSidebar } from "./AdminSidebar";
 import { RequireAdmin } from "@/components/RequireAdmin";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
+
 export function AdminShell({
   children,
   title,

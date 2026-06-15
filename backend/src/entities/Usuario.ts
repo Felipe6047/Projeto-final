@@ -13,6 +13,7 @@ import { Endereco } from "./Endereco";
 import { CupomUsuario } from "./CupomUsuario";
 
 export type PapelUsuario = "cliente" | "admin";
+export type KycStatus = "pendente" | "aprovado";
 
 @Entity("usuario")
 export class Usuario {
@@ -40,11 +41,34 @@ export class Usuario {
   @Column({ type: "int", unsigned: true, default: 0 })
   pontos!: number;
 
+  @Column({
+    name: "saldo_wallet",
+    type: "decimal",
+    precision: 10,
+    scale: 2,
+    default: 0,
+  })
+  saldoWallet!: string;
+
+  @Column({
+    name: "kyc_status",
+    type: "enum",
+    enum: ["pendente", "aprovado"],
+    default: "pendente",
+  })
+  kycStatus!: KycStatus;
+
   @Column({ name: "avatar_url", type: "varchar", length: 500, nullable: true })
   avatarUrl!: string | null;
 
-  @Column({ type: "tinyint", width: 1, default: 1 })
+  @Column({ type: "boolean", default: true })
   ativo!: boolean;
+
+  @Column({ name: "dias_ofensiva", type: "int", unsigned: true, default: 0 })
+  diasOfensiva!: number;
+
+  @Column({ name: "ultimo_acesso", type: "datetime", nullable: true })
+  ultimoAcesso!: Date | null;
 
   @Column({ type: "enum", enum: ["cliente", "admin"], default: "cliente" })
   papel!: PapelUsuario;

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Cupom } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { buscarUsuarios, Cupom } from "@/lib/api";
+import { mascaraCpf } from "@/lib/validators";
 
 type Canal = "email" | "whatsapp" | "sms" | "link";
 
@@ -29,7 +30,22 @@ export function ModalPresenteCupom({
   const [telefone, setTelefone] = useState("");
   const [cpf, setCpf] = useState("");
   const [mensagem, setMensagem] = useState("");
+  const [busca, setBusca] = useState("");
+  const [sugestoes, setSugestoes] = useState<
+    { id: number; nome: string; email: string }[]
+  >([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (busca.length < 2) {
+      setSugestoes([]);
+      return;
+    }
+    const t = setTimeout(() => {
+      buscarUsuarios(busca).then(setSugestoes).catch(() => setSugestoes([]));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [busca]);
 
   async function handleSubmit() {
     if (canal === "email" && !email.trim()) return;
@@ -101,6 +117,34 @@ export function ModalPresenteCupom({
         </label>
 
         <div className="space-y-3 mb-4">
+          <div className="relative">
+            <input
+              placeholder="Buscar destinatário por nome, e-mail ou CPF..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              className="w-full bg-surface-container-high rounded-xl px-4 py-3"
+            />
+            {sugestoes.length > 0 && (
+              <ul className="absolute z-10 w-full mt-1 bg-surface-container-low border rounded-xl shadow-lg max-h-40 overflow-y-auto">
+                {sugestoes.map((u) => (
+                  <li key={u.id}>
+                    <button
+                      type="button"
+                      className="w-full text-left px-4 py-2 hover:bg-surface-container-high text-sm"
+                      onClick={() => {
+                        setNome(u.nome);
+                        setEmail(u.email);
+                        setBusca(u.nome);
+                        setSugestoes([]);
+                      }}
+                    >
+                      {u.nome} — {u.email}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           <input
             placeholder="Nome do destinatário"
             value={nome}
@@ -125,9 +169,9 @@ export function ModalPresenteCupom({
             />
           )}
           <input
-            placeholder="CPF (opcional, 11 dígitos)"
+            placeholder="CPF (opcional)"
             value={cpf}
-            onChange={(e) => setCpf(e.target.value.replace(/\D/g, "").slice(0, 11))}
+            onChange={(e) => setCpf(mascaraCpf(e.target.value))}
             className="w-full bg-surface-container-high rounded-xl px-4 py-3"
           />
           <textarea

@@ -25,6 +25,8 @@ const cupomTemplateSchema = z.object({
   valor_minimo_compra: z.number().optional(),
   dias_validade: z.number().int().positive().optional(),
   ativo: z.boolean().optional(),
+  limite_por_usuario: z.number().int().positive().optional(),
+  limite_total: z.number().int().positive().optional(),
 });
 
 const produtoSchema = z.object({

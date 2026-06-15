@@ -12,6 +12,7 @@ import {
   incrementarMissao,
   verificarConquistas,
 } from "./gamificacao.service";
+import { debitarWallet } from "./wallet.service";
 
 export async function presentearCupom(data: {
   remetenteId: number;
@@ -99,6 +100,8 @@ export async function criarPedidoPresente(data: {
   itens: { produtoId: number; quantidade: number }[];
   pontosUsados: number;
   valorReais: number;
+  walletUsado?: number;
+  valorPix?: number;
   destinatario: {
     nome: string;
     email?: string;
@@ -136,7 +139,21 @@ export async function criarPedidoPresente(data: {
     };
   }
 
+  const walletUsado = data.walletUsado ?? 0;
+  const valorPix = data.valorPix ?? data.valorReais;
+  const aguardaPix = valorPix > 0;
+
   return AppDataSource.transaction(async (manager) => {
+    if (walletUsado > 0) {
+      const debito = await debitarWallet(
+        data.remetenteId,
+        walletUsado,
+        "Pagamento de presente (carteira)",
+        manager
+      );
+      if (debito && "erro" in debito) return debito;
+    }
+
     const pedido = await manager.getRepository(PedidoPresente).save({
       remetenteId: data.remetenteId,
       destinatarioId: data.destinatario.usuarioId ?? null,
@@ -150,7 +167,9 @@ export async function criarPedidoPresente(data: {
       enviarSurpresa: data.enviarSurpresa ?? false,
       valorReais: String(data.valorReais),
       pontosUsados: data.pontosUsados,
-      status: "pago",
+      walletUsado: String(walletUsado.toFixed(2)),
+      valorPix: String(valorPix.toFixed(2)),
+      status: aguardaPix ? "aguardando_pagamento" : "pago",
     });
 
     for (const item of data.itens) {
@@ -176,8 +195,32 @@ export async function criarPedidoPresente(data: {
 
     await incrementarMissao(data.remetenteId, "presentes", 1, manager);
 
-    return { pedidoId: pedido.id, status: "pago" };
+    return {
+      pedidoId: pedido.id,
+      status: pedido.status,
+      aguardaPix,
+      valorPix: valorPix > 0 ? valorPix : undefined,
+    };
   });
+}
+
+export async function confirmarPagamentoPedido(
+  usuarioId: number,
+  pedidoId: string
+) {
+  const pedido = await AppDataSource.getRepository(PedidoPresente).findOne({
+    where: { id: pedidoId, remetenteId: usuarioId },
+  });
+
+  if (!pedido) return { erro: "Pedido não encontrado" };
+  if (pedido.status !== "aguardando_pagamento") {
+    return { erro: "Este pedido não está aguardando pagamento" };
+  }
+
+  pedido.status = "pago";
+  await AppDataSource.getRepository(PedidoPresente).save(pedido);
+
+  return { pedidoId: pedido.id, status: "pago" };
 }
 
 export async function buscarPresentePorCodigo(codigo: string) {
@@ -275,6 +318,28 @@ export async function resgatarPresenteCupom(usuarioId: number, codigo: string) {
       titulo: template?.titulo ?? "Cupom",
     };
   });
+}
+
+export async function avancarStatusPedido(usuarioId: number, pedidoId: string) {
+  const pedido = await AppDataSource.getRepository(PedidoPresente).findOne({
+    where: [
+      { id: pedidoId, remetenteId: usuarioId },
+      { id: pedidoId, destinatarioId: usuarioId },
+    ],
+  });
+  if (!pedido) return { erro: "Pedido não encontrado" };
+
+  const fluxo: Record<string, string> = {
+    pago: "enviado",
+    enviado: "a_caminho",
+    a_caminho: "entregue",
+  };
+  const proximo = fluxo[pedido.status];
+  if (!proximo) return { erro: "Status não pode ser avançado" };
+
+  pedido.status = proximo as PedidoPresente["status"];
+  await AppDataSource.getRepository(PedidoPresente).save(pedido);
+  return { pedidoId: pedido.id, status: pedido.status };
 }
 
 export async function listarPedidosPresente(usuarioId: number) {

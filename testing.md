@@ -7,11 +7,10 @@ Definir uma estratégia de testes **automatizada**, orientada a **TDD First**, p
 ## 2. Escopo
 
 - **Backend (MVP implementado)**: foco em **unit tests** de serviços (regras de negócio) + **integration tests** de rotas (contrato HTTP, autenticação, validação e erros).
-- **Frontend (planejado/incipiente)**: preparar stack e plano de **unit/component tests** e **contract tests** dos serviços HTTP, com mocks (MSW) para simular a API.
+- **Frontend**: foco em testes responsivos, testes de acessibilidade (A11y), testes de renderização condicional (Loading/Error/Empty states), testes de componentes isolados, testes de integração simulando a API, E2E e testes de regressão visual.
 
 ### Fora de escopo (por ora)
 
-- Testes E2E completos (Playwright/Cypress) — recomendados para fase posterior após UI estabilizar.
 - Envio real de e-mail/WhatsApp/SMS (no MVP está “simulado”).
 - Admin `/api/admin/*` (planejado).
 
@@ -188,4 +187,66 @@ Abaixo, “teste mínimo crítico” por funcionalidade (prioridade alta). A equ
 - **Ajustar limiar de cobertura** por diretório (ex.: serviços críticos com threshold maior).
 - **Adicionar testes de erro padronizado** para garantir que `{ erro, detalhes? }` permaneça estável.
 - **Frontend**: introduzir MSW desde o início evita acoplamento e acelera TDD dos componentes.
+
+---
+
+## 8. Testes de Frontend (React / Next.js)
+
+### 8.1 Stack de Frontend
+| Ferramenta | Função |
+|------------|--------|
+| `jest` / `vitest` | Test runner de UI |
+| `@testing-library/react` | Testes de integração de componentes |
+| `@testing-library/user-event` | Simulação de interações do usuário |
+| `jest-axe` | Testes de acessibilidade |
+
+### 8.2 Casos de Teste (Componentes e Páginas)
+
+| # | Cenário | Tipo | Prioridade |
+|---|---------|------|------------|
+| F01 | Renderizar o Skeleton Loader quando isLoading for true | Componente | 🔴 Crítico |
+| F02 | Renderizar o Empty State quando a lista de dados for vazia | Componente | 🔴 Crítico |
+| F03 | Exibir Toast/Banner de erro quando a API falhar | Componente | 🔴 Crítico |
+| F04 | Input de CPF deve exibir borda de erro e `aria-invalid=true` em CPF incorreto | Componente | 🔴 Crítico |
+| F05 | Verificar navegação completa por teclado via tecla `Tab` | A11y / Usabilidade | 🟡 Alto |
+| F06 | Contrastes e Roles WCAG não devem falhar (usando `jest-axe`) | A11y | 🟡 Alto |
+| F07 | Modal de "Dar de Presente" deve renderizar em Mobile sem quebrar o layout | Responsividade | 🟢 Médio |
+| F08 | Menu lateral deve colapsar em resoluções menores que 1024px | Responsividade | 🟢 Médio |
+| F09 | Validação de formulários no cliente impede envio à API se campos inválidos | Interação | 🔴 Crítico |
+| F10 | Botões de submissão devem desabilitar e exibir loading na ação | UX / Loading | 🟡 Alto |
+
+### 8.3 Estrutura e Práticas
+
+- Os testes de componentes devem residir na pasta `frontend/src/tests/` ou ao lado dos próprios componentes (`*.test.tsx`).
+- Empregar o método `render` do RTL para testar páginas complexas "mockando" as chamadas `fetch` do `api.ts`.
+- Validar não apenas a presença de dados, mas a ausência deles (Empty states).
+
+## 12. Estratégia de Testes de Frontend e Acessibilidade
+
+### 12.1 Testes de Componentes e Renderização Condicional
+* **LoginPage:** Validar a renderização do formulário padrão e, condicionalmente, o estado logado caso exista perfil ativo no contexto de autenticação.
+* **DashboardPage:** Testar a exibição condicional do banner de eventos sazonais quando ativos e o progresso do nível de fidelidade.
+* **Estados de Interface (Loading / Skeleton / Empty):**
+  * Validar exibição do Skeleton animado durante a busca de CEP no formulário de endereço de presentes.
+  * Validar exibição de telas vazias ilustradas quando o usuário não possuir cupons no mercado.
+
+### 12.2 Testes de Acessibilidade (A11y)
+* **Navegação por Teclado:** Validar que elementos acionáveis (botões, inputs e links) recebem foco sequencial por teclado (`Tab`) e exibem contorno visual claro (`--frik-primary`).
+* **Rótulos e Atributos ARIA:**
+  * Validar que modais de troca e presentes possuem `role="dialog"` e `aria-modal="true"`.
+  * Validar que campos de erro de formulário exibem `aria-invalid="true"`.
+* **Contraste:** Validar proporção mínima de contraste (WCAG AA) para textos primários e secundários tanto no tema claro quanto escuro.
+
+### 12.3 Testes Responsivos
+* **Mobile (até 640px):** Validar a renderização da navbar inferior fixa e colunas únicas de catálogo de produtos.
+* **Desktop (acima de 1024px):** Validar a exibição da sidebar lateral de navegação fixa e layouts de grade de três colunas.
+
+### 12.4 Testes de Integração com APIs e MSW (Mock Service Worker)
+* Simular respostas da API de Notas Fiscais (NFC-e), validando fluxos de sucesso, erro de nota duplicada e status de `confirmacao_pendente` para atualização opcional do CPF.
+* Simular respostas da API de pagamento mockada (PIX e Wallet), verificando a transição de status para `"pago"`.
+
+### 12.5 Testes de Regressão Visual e E2E (Fase Posterior)
+* Utilizar ferramentas de Snapshot Testing (Jest Snapshots) para capturar a estrutura HTML dos cards e modais principais, prevenindo alterações acidentais de layout.
+* Testes E2E (Playwright) para validar a jornada completa: *Simular Venda no Caixa do Lojista → Notificação em Tempo Real no Painel do Cliente → Resgate no Mercado de Recompensas*.
+
 

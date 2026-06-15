@@ -17,7 +17,13 @@ export type StatusCupom =
   | "presenteado"
   | "expirado";
 
-export type OrigemCupom = "compra" | "missao" | "campanha" | "presente" | "troca";
+export type OrigemCupom =
+  | "compra"
+  | "missao"
+  | "campanha"
+  | "presente"
+  | "troca"
+  | "resgate";
 
 @Entity("cupom_usuario")
 export class CupomUsuario {
@@ -45,7 +51,7 @@ export class CupomUsuario {
 
   @Column({
     type: "enum",
-    enum: ["compra", "missao", "campanha", "presente", "troca"],
+    enum: ["compra", "missao", "campanha", "presente", "troca", "resgate"],
     default: "compra",
   })
   origem!: OrigemCupom;

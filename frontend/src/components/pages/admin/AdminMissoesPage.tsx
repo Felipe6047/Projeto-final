@@ -69,23 +69,34 @@ export function AdminMissoesPage() {
           setEditId(null);
           setOpen(true);
         }}
-        className="mb-6 px-6 py-3 rounded-full bg-primary-container text-on-primary-container font-bold"
+        className="mb-8 flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-on-primary font-bold shadow-md hover:opacity-90 transition-opacity"
       >
+        <span className="material-symbols-outlined">add</span>
         Nova missão
       </button>
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {lista.map((m) => (
           <div
             key={m.id}
-            className="flex flex-wrap justify-between gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/20"
+            className={`flex flex-col justify-between p-6 rounded-2xl border transition-all ${m.ativa ? 'bg-surface-container-low border-outline-variant/30 premium-shadow' : 'bg-surface-container border-outline-variant/10 opacity-70'}`}
           >
             <div>
-              <p className="font-bold">{m.titulo}</p>
-              <p className="text-sm text-on-surface-variant">
-                {m.tipo_meta} · meta {m.meta_valor} · +{m.pontos_recompensa} pts
+              <div className="flex justify-between items-start mb-3">
+                <h5 className="font-bold text-lg text-on-surface">{m.titulo}</h5>
+                <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded-full ${m.ativa ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-surface-variant text-on-surface-variant'}`}>
+                  {m.tipo_meta}
+                </span>
+              </div>
+              <p className="text-sm text-on-surface-variant mb-4 line-clamp-2">
+                Meta: {m.meta_valor}
               </p>
+              <div className="flex items-center gap-1 text-primary font-bold bg-primary-container/20 w-fit px-3 py-1.5 rounded-full mb-6 border border-primary/10">
+                <span className="material-symbols-outlined text-[16px]">monetization_on</span>
+                +{m.pontos_recompensa} pts
+              </div>
             </div>
-            <div className="flex gap-2">
+            
+            <div className="flex justify-end gap-2 pt-4 border-t border-outline-variant/20">
               <button
                 type="button"
                 onClick={() => {
@@ -93,8 +104,9 @@ export function AdminMissoesPage() {
                   setEditId(m.id!);
                   setOpen(true);
                 }}
-                className="px-4 py-2 rounded-full border border-outline-variant text-sm"
+                className="flex items-center gap-1 px-4 py-2 rounded-full border border-outline-variant hover:bg-surface-variant transition-colors text-sm font-medium"
               >
+                <span className="material-symbols-outlined text-[16px]">edit</span>
                 Editar
               </button>
               <button
@@ -105,8 +117,9 @@ export function AdminMissoesPage() {
                   toast("Removida", "success");
                   await load();
                 }}
-                className="px-4 py-2 rounded-full border border-error/50 text-error text-sm"
+                className="flex items-center gap-1 px-4 py-2 rounded-full border border-error/20 bg-error/5 text-error hover:bg-error hover:text-white transition-colors text-sm font-medium"
               >
+                <span className="material-symbols-outlined text-[16px]">delete</span>
                 Excluir
               </button>
             </div>

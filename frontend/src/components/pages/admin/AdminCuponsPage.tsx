@@ -173,6 +173,32 @@ export function AdminCuponsPage() {
             }
           />
         </AdminField>
+        <AdminField label="Limite por usuário (Opcional)">
+          <input
+            type="number"
+            className={adminInputClass()}
+            value={form.limite_por_usuario ?? ""}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                limite_por_usuario: e.target.value ? Number(e.target.value) : undefined,
+              })
+            }
+          />
+        </AdminField>
+        <AdminField label="Estoque global (Opcional)">
+          <input
+            type="number"
+            className={adminInputClass()}
+            value={form.limite_total ?? ""}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                limite_total: e.target.value ? Number(e.target.value) : undefined,
+              })
+            }
+          />
+        </AdminField>
       </AdminFormModal>
     </AdminShell>
   );

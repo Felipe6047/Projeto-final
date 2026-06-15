@@ -74,7 +74,7 @@ router.post("/solicitar-troca", async (req, res, next) => {
   }
 });
 
-router.patch("/propostas/:id", async (req, res, next) => {
+router.patch("/propostas/:id", authRequired, async (req, res, next) => {
   try {
     const body = z.object({ aceitar: z.boolean() }).parse(req.body);
     const result = await cupomService.responderTroca(
@@ -84,6 +84,27 @@ router.patch("/propostas/:id", async (req, res, next) => {
     );
     if ("erro" in result) return fail(res, result.erro!);
     return ok(res, result);
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.get("/templates", async (_req, res, next) => {
+  try {
+    return ok(res, await cupomService.listarTemplatesParaResgate());
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post("/resgatar/:templateId", async (req, res, next) => {
+  try {
+    const result = await cupomService.resgatarTemplateComPontos(
+      req.user!.id,
+      Number(req.params.templateId)
+    );
+    if ("erro" in result) return fail(res, result.erro!);
+    return ok(res, result, 201);
   } catch (e) {
     next(e);
   }

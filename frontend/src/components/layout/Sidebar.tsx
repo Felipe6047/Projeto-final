@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 const nav = [
   { href: "/", label: "Início", icon: "dashboard" },
   { href: "/mercado-cupons", label: "Mercado de Cupons", icon: "shopping_bag" },
-  { href: "/presentes", label: "Presentes", icon: "redeem" },
+  { href: "/presentes", label: "Produtos", icon: "redeem" },
   { href: "/ranking", label: "Ranking", icon: "military_tech" },
   { href: "/salas", label: "Salas de troca", icon: "groups" },
   { href: "/perfil", label: "Perfil", icon: "person" },
@@ -16,7 +16,7 @@ const nav = [
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout } = useAuth();
+  const { logout, isAdmin } = useAuth();
 
   return (
     <aside className="hidden lg:flex w-[280px] h-screen fixed left-0 top-0 border-r border-outline-variant bg-background flex-col py-8 px-6 z-50">
@@ -26,7 +26,7 @@ export function Sidebar() {
         </Link>
         <p className="frik-label text-on-surface-variant mt-2">Membro Premium</p>
       </div>
-      <nav className="flex-1 space-y-1">
+      <nav aria-label="Menu Principal" className="flex-1 space-y-1">
         {nav.map((item) => {
           const active =
             item.href === "/"
@@ -54,6 +54,19 @@ export function Sidebar() {
             </Link>
           );
         })}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className={`flex items-center gap-4 py-3 px-4 rounded-lg transition-colors ${
+              pathname.startsWith("/admin")
+                ? "text-primary font-bold border-r-4 border-primary bg-surface-container"
+                : "text-on-surface-variant hover:bg-surface-container"
+            }`}
+          >
+            <span className="material-symbols-outlined">admin_panel_settings</span>
+            <span className="text-base">Painel Admin (PDV)</span>
+          </Link>
+        )}
       </nav>
       <button
         type="button"

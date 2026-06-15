@@ -5,11 +5,17 @@ import { ok } from "../utils/http";
 
 const router = Router();
 
-router.get("/", async (_req, res, next) => {
+router.get("/", async (req, res, next) => {
   try {
-    const rows = await AppDataSource.getRepository(Produto).find({
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.max(1, Number(req.query.limit) || 10);
+    const skip = (page - 1) * limit;
+
+    const [rows, total] = await AppDataSource.getRepository(Produto).findAndCount({
       where: { ativo: true },
       order: { nome: "ASC" },
+      skip,
+      take: limit,
       select: {
         id: true,
         nome: true,
@@ -29,7 +35,13 @@ router.get("/", async (_req, res, next) => {
       estoque: p.estoque,
       imagem_url: p.imagemUrl,
     }));
-    return ok(res, mapped);
+    return ok(res, {
+      data: mapped,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (e) {
     next(e);
   }

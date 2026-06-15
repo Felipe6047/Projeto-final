@@ -18,7 +18,7 @@ import {
 
 interface AuthContextValue {
   user: AuthUser | null;
-  perfil: { nome: string; pontos: number; nivel: string; papel: string } | null;
+  perfil: { id?: number; email?: string; nome: string; pontos: number; nivel: string; papel: string; saldo_wallet?: string | number; dias_ofensiva?: number } | null;
   isAdmin: boolean;
   loading: boolean;
   login: (email: string, senha: string) => Promise<"admin" | "cliente">;
@@ -35,6 +35,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     pontos: number;
     nivel: string;
     papel: string;
+    saldo_wallet?: string | number;
+    dias_ofensiva?: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -47,6 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         pontos: p.pontos,
         nivel: p.nivel,
         papel: p.papel ?? "cliente",
+        saldo_wallet: p.saldo_wallet,
+        dias_ofensiva: p.dias_ofensiva ?? 0,
       });
       setUser({
         id: p.id,

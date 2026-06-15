@@ -36,6 +36,7 @@ export async function api<T>(
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(`${API_URL}${path}`, {
+    cache: "no-store",
     ...options,
     headers: { ...headers, ...(options.headers as Record<string, string>) },
   });
@@ -72,11 +73,26 @@ export interface PerfilResponse {
   telefone?: string | null;
   cpf?: string | null;
   pontos: number;
+  saldo_wallet?: string | number;
+  kyc_status?: "pendente" | "aprovado";
   nivel: string;
   nivel_slug: string;
   nivel_ordem?: number;
+  dias_ofensiva: number;
   avatar_url?: string | null;
   papel?: PapelUsuario;
+}
+
+export interface HistoricoTroca {
+  id: string;
+  status: "pendente" | "aceita" | "recusada" | "cancelada";
+  taxa_pontos: number;
+  criado_em: string;
+  respondido_em: string | null;
+  cupom_solicitante: string;
+  cupom_proprietario: string;
+  solicitante_id: number;
+  proprietario_id: number;
 }
 
 export interface HistoricoPontosItem {
@@ -90,6 +106,77 @@ export interface HistoricoPontosItem {
 
 export async function getHistoricoPontos(limite = 30) {
   return api<HistoricoPontosItem[]>(`/auth/historico-pontos?limite=${limite}`);
+}
+
+export async function processarNotaFiscal(chave: string, vincularCpf?: boolean) {
+  return api<{
+    status: string;
+    cpfNota?: string;
+    valorTotal?: number;
+    pontosGerados?: number;
+    saldoPontos?: number;
+  }>("/compra/nota-fiscal", {
+    method: "POST",
+    body: JSON.stringify({ chave, vincularCpf }),
+  });
+}
+
+export async function simuladorVendaPorCpf(cpf: string, valorTotal: number) {
+  return api<{
+    usuarioId: number;
+    valorTotal: number;
+    pontosGerados: number;
+    saldoPontos: number;
+  }>("/simulador-caixa/venda", {
+    method: "POST",
+    body: JSON.stringify({ cpf, valorTotal }),
+  });
+}
+
+export async function simuladorGerarNota(valorTotal: number, cpf?: string) {
+  return api<{
+    chave: string;
+    valorTotal: number;
+    cpf: string | null;
+    pontosEstimados: number;
+  }>("/simulador-caixa/nota", {
+    method: "POST",
+    body: JSON.stringify({ valorTotal, cpf }),
+  });
+}
+
+export async function buscarUsuarios(q: string) {
+  return api<
+    { id: number; nome: string; email: string; cpf: string | null; nivel: string }[]
+  >(`/auth/buscar-usuarios?q=${encodeURIComponent(q)}`);
+}
+
+export async function verificarKyc() {
+  return api<{ kycStatus: string }>("/auth/kyc/verificar", { method: "POST" });
+}
+
+export async function excluirConta() {
+  return api<{ ok: boolean }>("/auth/me", { method: "DELETE" });
+}
+
+export async function getExtratoWallet(limite = 20) {
+  return api<
+    {
+      id: string;
+      valor: string;
+      saldo_apos: string;
+      tipo: string;
+      descricao: string | null;
+      criado_em: string;
+    }[]
+  >(`/auth/extrato-wallet?limite=${limite}`);
+}
+
+export async function confirmarPagamentoPedido(pedidoId: string) {
+  return api<{ pedidoId: string; status: string }>(
+    `/presentes/pedidos/${pedidoId}/confirmar-pagamento`,
+    { method: "POST" }
+  );
 }
 
 export async function registrarCompra(valorTotal: number) {
@@ -189,13 +276,22 @@ export async function entrarSala(codigo: string) {
   );
 }
 
+export async function sairSala(codigo: string) {
+  return api<{ ok: boolean }>(`/salas/${codigo}/sair`, { method: "DELETE" });
+}
+
+export async function excluirSala(codigo: string) {
+  return api<{ ok: boolean }>(`/salas/${codigo}`, { method: "DELETE" });
+}
+
 export async function detalheSala(codigo: string) {
   return api<{
     id: number;
     nome: string;
     codigo_convite: string;
+    criador_id: number;
     criador_nome: string;
-    membros: { id: number; nome: string }[];
+    membros: { id: number; nome: string; nivel: string; nivel_slug: string }[];
     totalMembros: number;
   }>(`/salas/${codigo}`);
 }
@@ -209,6 +305,9 @@ export interface Cupom {
   validade_ate: string;
   proprietario_nome?: string;
   nivel_slug?: string;
+  valor_minimo_compra?: number;
+  desconto_percentual?: number;
+  template_id?: number;
 }
 
 export async function login(email: string, senha: string) {
@@ -216,6 +315,227 @@ export async function login(email: string, senha: string) {
     method: "POST",
     body: JSON.stringify({ email, senha }),
   });
+}
+
+export async function register(
+  nome: string,
+  email: string,
+  senha: string,
+  cpf: string
+) {
+  return api<LoginResponse>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ nome, email, senha, cpf }),
+  });
+}
+
+export async function getMissoesAtivas() {
+  return api<
+    {
+      id: number;
+      titulo: string;
+      descricao: string;
+      pontos_recompensa: number;
+      tipo_meta: string;
+      meta_valor: number;
+      progresso: number;
+      concluida: number;
+    }[]
+  >("/missoes");
+}
+
+export async function getCampanhasAtivas() {
+  return api<
+    { id: number; titulo: string; descricao: string | null; fim_em: string }[]
+  >("/campanhas/ativas");
+}
+
+export interface CupomTemplate {
+  id: number;
+  titulo: string;
+  descricao: string;
+  categoria: string;
+  preco_pontos: number;
+  dias_validade: number;
+  limite_por_usuario?: number | null;
+  limite_total?: number | null;
+  qtd_vendida?: string | number;
+}
+
+export async function getCuponsParaResgate() {
+  return api<CupomTemplate[]>("/mercado-cupons/templates");
+}
+
+export async function resgatarCupomComPontos(templateId: number) {
+  return api<{
+    cupomId: string;
+    codigo: string;
+    titulo: string;
+    pontosUsados: number;
+    saldoPontos: number;
+  }>(`/mercado-cupons/resgatar/${templateId}`, { method: "POST" });
+}
+
+export async function getMeusAmigos() {
+  return api<
+    {
+      id: number;
+      nome: string;
+      email: string;
+      nivel: string;
+      tem_endereco: number;
+    }[]
+  >("/amigos");
+}
+
+export async function buscarUsuariosAmigos(q: string) {
+  return api<{ id: number; nome: string; email: string; nivel: string }[]>(
+    `/amigos/busca?q=${encodeURIComponent(q)}`
+  );
+}
+
+export async function adicionarAmigo(amigoId: number) {
+  return api<{ ok: boolean }>("/amigos", {
+    method: "POST",
+    body: JSON.stringify({ amigoId }),
+  });
+}
+
+export async function removerAmigo(amigoId: number) {
+  return api<{ ok: boolean }>(`/amigos/${amigoId}`, { method: "DELETE" });
+}
+
+export async function getEnderecoAmigo(amigoId: number) {
+  return api<{
+    cep: string;
+    logradouro: string;
+    numero: string;
+    bairro: string;
+    cidade: string;
+    uf: string;
+  } | null>(`/amigos/${amigoId}/endereco`);
+}
+
+export interface Endereco {
+  id: number;
+  apelido: string | null;
+  cep: string;
+  logradouro: string;
+  numero: string;
+  complemento: string | null;
+  bairro: string;
+  cidade: string;
+  uf: string;
+  principal: boolean | number;
+}
+
+export async function listarMeusEnderecos() {
+  return api<Endereco[]>("/enderecos");
+}
+
+export async function criarEndereco(dados: Partial<Endereco>) {
+  return api<Endereco>("/enderecos", {
+    method: "POST",
+    body: JSON.stringify(dados),
+  });
+}
+
+export async function atualizarEndereco(id: number, dados: Partial<Endereco>) {
+  return api<Endereco>(`/enderecos/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(dados),
+  });
+}
+
+export async function excluirEndereco(id: number) {
+  return api<{ ok: boolean }>(`/enderecos/${id}`, { method: "DELETE" });
+}
+
+export async function getRankingMensal(limite = 10) {
+  return api<RankingItem[]>(`/ranking/mensal?limite=${limite}`);
+}
+
+export async function getRankingTrocas(limite = 10) {
+  return api<RankingItem[]>(`/ranking/trocas?limite=${limite}`);
+}
+
+export async function getRankingPresentes(limite = 10) {
+  return api<RankingItem[]>(`/ranking/presentes?limite=${limite}`);
+}
+
+export async function getRankingConquistasTab(limite = 10) {
+  return api<RankingItem[]>(`/ranking/conquistas-ranking?limite=${limite}`);
+}
+
+export interface RankingItem {
+  id: number;
+  posicao: number;
+  nome: string;
+  nivel: string;
+  pontos: number;
+}
+
+export async function getCuponsMembrosSala(codigo: string) {
+  return api<
+    {
+      id: number;
+      codigo: string;
+      titulo: string;
+      proprietario_nome: string;
+      usuario_id: number;
+    }[]
+  >(`/salas/${codigo}/cupons-membros`);
+}
+
+export async function getPropostasSala(codigo: string) {
+  return api<
+    {
+      id: string;
+      status: string;
+      solicitante_id: number;
+      proprietario_id: number;
+      solicitante_nome: string;
+      proprietario_nome: string;
+    }[]
+  >(`/salas/${codigo}/propostas`);
+}
+
+export async function proporTrocaSala(
+  codigo: string,
+  cupomOfertadoId: number,
+  cupomSolicitadoId: number
+) {
+  return api<{ propostaId: string }>(`/salas/${codigo}/propor-troca`, {
+    method: "POST",
+    body: JSON.stringify({ cupomOfertadoId, cupomSolicitadoId }),
+  });
+}
+
+export async function responderProposta(propostaId: number, aceitar: boolean) {
+  return api<{ status: string }>(`/mercado-cupons/propostas/${propostaId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ aceitar }),
+  });
+}
+
+export async function listarPedidosPresente() {
+  return api<
+    {
+      id: string;
+      destinatario_nome: string;
+      status: string;
+      valor_reais: string;
+      pontos_usados: number;
+      criado_em: string;
+    }[]
+  >("/presentes/pedidos");
+}
+
+export async function avancarStatusPedido(pedidoId: string) {
+  return api<{ pedidoId: string; status: string }>(
+    `/presentes/pedidos/${pedidoId}/status`,
+    { method: "PATCH" }
+  );
 }
 
 export async function getPerfil() {
@@ -302,16 +622,22 @@ export async function solicitarTroca(body: {
   });
 }
 
-export async function getProdutos() {
-  return api<
-    {
+export async function listarProdutos(page = 1, limit = 10) {
+  return api<{
+    data: {
       id: number;
       nome: string;
       descricao: string;
-      preco_reais: number;
+      preco_reais: string;
       preco_pontos: number;
-    }[]
-  >("/produtos");
+      estoque: number;
+      imagem_url: string | null;
+    }[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>(`/produtos?page=${page}&limit=${limit}`);
 }
 
 export async function presentearCupom(body: {
@@ -336,18 +662,26 @@ export async function criarPedidoPresente(body: {
   itens: { produtoId: number; quantidade: number }[];
   pontosUsados: number;
   valorReais: number;
+  walletUsado?: number;
+  valorPix?: number;
   destinatario: {
     nome: string;
     email?: string;
     telefone?: string;
     cpf?: string;
+    usuarioId?: number;
   };
   endereco: Record<string, string>;
   mensagem?: string;
   embrulho?: boolean;
   enviarSurpresa?: boolean;
 }) {
-  return api<{ pedidoId: number; status: string }>("/presentes/produto", {
+  return api<{
+    pedidoId: number;
+    status: string;
+    aguardaPix?: boolean;
+    valorPix?: number;
+  }>("/presentes/produto", {
     method: "POST",
     body: JSON.stringify(body),
   });
@@ -362,6 +696,10 @@ export interface AdminDashboard {
   cuponsAtivos: number;
   pedidosPendentes: number;
   campanhasAtivas: number;
+  // Gamification Metrics
+  missoesConcluidas?: number;
+  trofeusDesbloqueados?: number;
+  retencao3Dias?: number;
 }
 
 export async function adminGetDashboard() {
@@ -422,6 +760,8 @@ export interface CupomTemplateAdmin {
   valor_minimo_compra?: number;
   dias_validade?: number;
   ativo?: boolean | number;
+  limite_por_usuario?: number | null;
+  limite_total?: number | null;
 }
 
 export async function adminListCupomTemplates() {

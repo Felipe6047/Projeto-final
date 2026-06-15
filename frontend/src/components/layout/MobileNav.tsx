@@ -15,7 +15,7 @@ export function MobileNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-outline-variant flex justify-around py-2 px-2 safe-area-pb">
+    <nav aria-label="Navegação Inferior" className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-outline-variant flex justify-around py-2 px-2 safe-area-pb">
       {items.map((item) => {
         const active =
           item.href === "/"

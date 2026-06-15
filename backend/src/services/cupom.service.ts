@@ -2,6 +2,7 @@ import { EntityManager, In } from "typeorm";
 import { AppDataSource } from "../config/database";
 import { env } from "../config/env";
 import { CupomUsuario } from "../entities/CupomUsuario";
+import { CupomTemplate } from "../entities/CupomTemplate";
 import { PropostaTroca } from "../entities/PropostaTroca";
 import { Usuario } from "../entities/Usuario";
 import { UsuarioTrocaMes } from "../entities/UsuarioTrocaMes";
@@ -28,11 +29,111 @@ export async function listarMeusCupons(usuarioId: number) {
       "ct.categoria AS categoria",
       "ct.descontoPercentual AS desconto_percentual",
       "ct.valorMinimoCompra AS valor_minimo_compra",
+      "ct.id AS template_id",
     ])
     .where("cu.usuarioId = :usuarioId", { usuarioId })
     .andWhere("cu.status IN ('disponivel', 'oferecido_troca')")
     .orderBy("cu.validadeAte", "ASC")
     .getRawMany();
+}
+
+export async function listarTemplatesParaResgate() {
+  return AppDataSource.getRepository(CupomTemplate)
+    .createQueryBuilder("ct")
+    .select([
+      "ct.id AS id",
+      "ct.titulo AS titulo",
+      "ct.descricao AS descricao",
+      "ct.categoria AS categoria",
+      "ct.precoPontos AS preco_pontos",
+      "ct.diasValidade AS dias_validade",
+      "ct.descontoPercentual AS desconto_percentual",
+      "ct.limitePorUsuario AS limite_por_usuario",
+      "ct.limiteTotal AS limite_total",
+      "(SELECT COUNT(cu.id) FROM cupom_usuario cu WHERE cu.template_id = ct.id) AS qtd_vendida"
+    ])
+    .where("ct.ativo = 1")
+    .orderBy("ct.precoPontos", "ASC")
+    .getRawMany();
+}
+
+export async function resgatarTemplateComPontos(
+  usuarioId: number,
+  templateId: number
+) {
+  return AppDataSource.transaction(async (manager) => {
+    const template = await manager.getRepository(CupomTemplate).findOne({
+      where: { id: templateId, ativo: true },
+    });
+    if (!template) return { erro: "Cupom não disponível" };
+
+    const usuario = await manager.getRepository(Usuario).findOne({
+      where: { id: usuarioId },
+      select: ["id", "pontos", "kycStatus"],
+    });
+    if (!usuario) return { erro: "Usuário não encontrado" };
+    if (usuario.pontos < template.precoPontos) {
+      return { erro: "Pontos insuficientes para resgatar este cupom" };
+    }
+
+    if (template.limiteTotal !== null) {
+      const emitidosGeral = await manager.getRepository(CupomUsuario).count({
+        where: { template: { id: templateId } },
+      });
+      if (emitidosGeral >= template.limiteTotal) {
+        return { erro: "Esgotado globalmente." };
+      }
+    }
+
+    if (template.limitePorUsuario !== null) {
+      const emitidosUsuario = await manager.getRepository(CupomUsuario).count({
+        where: { template: { id: templateId }, usuario: { id: usuarioId } },
+      });
+      if (emitidosUsuario >= template.limitePorUsuario) {
+        return { erro: "Limite de uso por conta atingido para este cupom." };
+      }
+    }
+
+    const validade = new Date();
+    validade.setDate(validade.getDate() + template.diasValidade);
+    const codigo = `FRIK-${usuarioId}-${Date.now().toString(36).toUpperCase()}`;
+
+    const cupom = await manager.getRepository(CupomUsuario).save({
+      usuarioId,
+      templateId: template.id,
+      codigo,
+      status: "disponivel",
+      validadeAte: validade.toISOString().slice(0, 10),
+      origem: "resgate",
+    });
+
+    await manager
+      .getRepository(Usuario)
+      .decrement({ id: usuarioId }, "pontos", template.precoPontos);
+
+    const atualizado = await manager.getRepository(Usuario).findOneOrFail({
+      where: { id: usuarioId },
+      select: ["pontos"],
+    });
+
+    await manager.getRepository(HistoricoPontos).save({
+      usuarioId,
+      valor: -template.precoPontos,
+      saldoApos: atualizado.pontos,
+      tipo: "resgate",
+      referenciaTipo: "cupom_template",
+      referenciaId: String(template.id),
+      descricao: `Resgate: ${template.titulo}`,
+    });
+
+    return {
+      cupomId: cupom.id,
+      codigo: cupom.codigo,
+      titulo: template.titulo,
+      pontosUsados: template.precoPontos,
+      saldoPontos: atualizado.pontos,
+    };
+  });
 }
 
 export async function listarMercado(filtros: {
@@ -249,6 +350,57 @@ export async function responderTroca(
   });
 }
 
+export async function proporTrocaSala(
+  solicitanteId: number,
+  cupomOfertadoId: number,
+  cupomSolicitadoId: number
+) {
+  return AppDataSource.transaction(async (manager) => {
+    const cupomRepo = manager.getRepository(CupomUsuario);
+
+    const cupomAlvo = await cupomRepo.findOne({
+      where: { id: String(cupomSolicitadoId), status: "disponivel" },
+    });
+    if (!cupomAlvo || cupomAlvo.usuarioId === solicitanteId) {
+      return { erro: "Cupom do membro indisponível" };
+    }
+
+    const meuCupom = await cupomRepo.findOne({
+      where: {
+        id: String(cupomOfertadoId),
+        usuarioId: solicitanteId,
+        status: "disponivel",
+      },
+    });
+    if (!meuCupom) return { erro: "Seu cupom não é válido" };
+
+    const proposta = await manager.getRepository(PropostaTroca).save({
+      solicitanteId,
+      proprietarioId: cupomAlvo.usuarioId,
+      cupomSolicitanteId: String(cupomOfertadoId),
+      cupomProprietarioId: String(cupomSolicitadoId),
+      taxaPontos: 0,
+      taxaAceita: false,
+      status: "pendente",
+    });
+
+    await cupomRepo.update(
+      { id: In([String(cupomOfertadoId), String(cupomSolicitadoId)]) },
+      { status: "em_troca" }
+    );
+
+    await criarNotificacao(
+      cupomAlvo.usuarioId,
+      "Proposta na sala de troca",
+      "Um membro da sala quer trocar cupons com você.",
+      "troca",
+      manager
+    );
+
+    return { propostaId: proposta.id };
+  });
+}
+
 export async function historicoTrocas(usuarioId: number) {
   return AppDataSource.getRepository(PropostaTroca)
     .createQueryBuilder("pt")
@@ -262,6 +414,8 @@ export async function historicoTrocas(usuarioId: number) {
       "pt.respondidoEm AS respondido_em",
       "cs.codigo AS cupom_solicitante",
       "cp.codigo AS cupom_proprietario",
+      "pt.solicitanteId AS solicitante_id",
+      "pt.proprietarioId AS proprietario_id"
     ])
     .where("pt.solicitanteId = :usuarioId OR pt.proprietarioId = :usuarioId", {
       usuarioId,

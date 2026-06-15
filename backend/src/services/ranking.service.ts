@@ -112,6 +112,73 @@ export async function todasConquistasComStatus(usuarioId: number) {
     .getRawMany();
 }
 
+export async function rankingMensal(limite = 10) {
+  return AppDataSource.query(
+    `SELECT u.id, u.nome, n.nome AS nivel,
+            COALESCE(SUM(hp.valor), 0) AS pontos,
+            ROW_NUMBER() OVER (ORDER BY COALESCE(SUM(hp.valor), 0) DESC) AS posicao
+     FROM usuario u
+     INNER JOIN nivel_fidelidade n ON n.id = u.nivel_id
+     LEFT JOIN historico_pontos hp ON hp.usuario_id = u.id
+       AND hp.valor > 0
+       AND hp.criado_em >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+     WHERE u.ativo = 1 AND u.papel = 'cliente'
+     GROUP BY u.id, u.nome, n.nome
+     ORDER BY pontos DESC
+     LIMIT ?`,
+    [limite]
+  );
+}
+
+export async function rankingTrocas(limite = 10) {
+  return AppDataSource.query(
+    `SELECT u.id, u.nome, n.nome AS nivel,
+            COUNT(pt.id) AS pontos,
+            ROW_NUMBER() OVER (ORDER BY COUNT(pt.id) DESC) AS posicao
+     FROM usuario u
+     INNER JOIN nivel_fidelidade n ON n.id = u.nivel_id
+     LEFT JOIN proposta_troca pt ON pt.status = 'aceita'
+       AND (pt.solicitante_id = u.id OR pt.proprietario_id = u.id)
+     WHERE u.ativo = 1 AND u.papel = 'cliente'
+     GROUP BY u.id, u.nome, n.nome
+     ORDER BY pontos DESC
+     LIMIT ?`,
+    [limite]
+  );
+}
+
+export async function rankingPresentes(limite = 10) {
+  return AppDataSource.query(
+    `SELECT u.id, u.nome, n.nome AS nivel,
+            COUNT(pc.id) AS pontos,
+            ROW_NUMBER() OVER (ORDER BY COUNT(pc.id) DESC) AS posicao
+     FROM usuario u
+     INNER JOIN nivel_fidelidade n ON n.id = u.nivel_id
+     LEFT JOIN presente_cupom pc ON pc.remetente_id = u.id
+     WHERE u.ativo = 1 AND u.papel = 'cliente'
+     GROUP BY u.id, u.nome, n.nome
+     ORDER BY pontos DESC
+     LIMIT ?`,
+    [limite]
+  );
+}
+
+export async function rankingConquistas(limite = 10) {
+  return AppDataSource.query(
+    `SELECT u.id, u.nome, n.nome AS nivel,
+            COUNT(uc.conquista_id) AS pontos,
+            ROW_NUMBER() OVER (ORDER BY COUNT(uc.conquista_id) DESC) AS posicao
+     FROM usuario u
+     INNER JOIN nivel_fidelidade n ON n.id = u.nivel_id
+     LEFT JOIN usuario_conquista uc ON uc.usuario_id = u.id
+     WHERE u.ativo = 1 AND u.papel = 'cliente'
+     GROUP BY u.id, u.nome, n.nome
+     ORDER BY pontos DESC
+     LIMIT ?`,
+    [limite]
+  );
+}
+
 export async function eventoAtivo() {
   return AppDataSource.getRepository(EventoSazonal)
     .createQueryBuilder("e")

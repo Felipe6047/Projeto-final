@@ -13,6 +13,42 @@ router.get("/beneficios", async (_req, res, next) => {
   }
 });
 
+router.get("/mensal", async (req, res, next) => {
+  try {
+    const limite = req.query.limite ? Number(req.query.limite) : 10;
+    return ok(res, await rankingService.rankingMensal(limite));
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.get("/trocas", async (req, res, next) => {
+  try {
+    const limite = req.query.limite ? Number(req.query.limite) : 10;
+    return ok(res, await rankingService.rankingTrocas(limite));
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.get("/presentes", async (req, res, next) => {
+  try {
+    const limite = req.query.limite ? Number(req.query.limite) : 10;
+    return ok(res, await rankingService.rankingPresentes(limite));
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.get("/conquistas-ranking", async (req, res, next) => {
+  try {
+    const limite = req.query.limite ? Number(req.query.limite) : 10;
+    return ok(res, await rankingService.rankingConquistas(limite));
+  } catch (e) {
+    next(e);
+  }
+});
+
 router.get("/global", async (req, res, next) => {
   try {
     const limite = req.query.limite ? Number(req.query.limite) : 50;

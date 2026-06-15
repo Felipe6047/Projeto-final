@@ -22,5 +22,5 @@ export const env = {
     expiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
   },
   taxaTrocaPontos: Number(process.env.TAXA_TROCA_PONTOS ?? 50),
-  pontosPorReal: Number(process.env.PONTOS_POR_REAL ?? 10),
+  pontosPorReal: Number(process.env.PONTOS_POR_REAL ?? 1),
 };

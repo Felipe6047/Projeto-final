@@ -8,8 +8,14 @@ import { getToken } from "@/lib/api";
 const PUBLIC_PATHS = ["/login"];
 const ADMIN_PREFIX = "/admin";
 
-export function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { loading, user } = useAuth();
+export function RequireAuth({
+  children,
+  adminOnly = false,
+}: {
+  children: React.ReactNode;
+  adminOnly?: boolean;
+}) {
+  const { loading, user, isAdmin } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -20,8 +26,12 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     if (isAdminRoute) return;
     if (!isPublic && !getToken() && !user) {
       router.replace("/login");
+      return;
     }
-  }, [loading, user, pathname, router]);
+    if (adminOnly && !loading && user && !isAdmin) {
+      router.replace("/");
+    }
+  }, [loading, user, pathname, router, adminOnly, isAdmin]);
 
   if (loading && !PUBLIC_PATHS.includes(pathname) && !pathname.startsWith(ADMIN_PREFIX)) {
     return (

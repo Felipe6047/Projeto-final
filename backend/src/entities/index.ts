@@ -20,6 +20,9 @@ export { SalaTroca } from "./SalaTroca";
 export { SalaTrocaMembro } from "./SalaTrocaMembro";
 export { Notificacao } from "./Notificacao";
 export { Campanha } from "./Campanha";
+export { NotaFiscal } from "./NotaFiscal";
+export { ExtratoWallet } from "./ExtratoWallet";
+export { Amizade } from "./Amizade";
 
 import { NivelFidelidade } from "./NivelFidelidade";
 import { Usuario } from "./Usuario";
@@ -43,6 +46,9 @@ import { SalaTroca } from "./SalaTroca";
 import { SalaTrocaMembro } from "./SalaTrocaMembro";
 import { Notificacao } from "./Notificacao";
 import { Campanha } from "./Campanha";
+import { NotaFiscal } from "./NotaFiscal";
+import { ExtratoWallet } from "./ExtratoWallet";
+import { Amizade } from "./Amizade";
 
 export const entities = [
   NivelFidelidade,
@@ -67,4 +73,7 @@ export const entities = [
   SalaTrocaMembro,
   Notificacao,
   Campanha,
+  NotaFiscal,
+  ExtratoWallet,
+  Amizade,
 ];

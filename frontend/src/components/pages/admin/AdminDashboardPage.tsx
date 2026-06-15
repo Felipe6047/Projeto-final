@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { AdminPdvSection } from "@/components/admin/AdminPdvSection";
 import {
   adminGetDashboard,
   adminGetSegmentacao,
@@ -43,8 +44,13 @@ export function AdminDashboardPage() {
         { label: "Cupons ativos", value: dash.cuponsAtivos, icon: "confirmation_number" },
         { label: "Pedidos pendentes", value: dash.pedidosPendentes, icon: "redeem" },
         { label: "Campanhas ativas", value: dash.campanhasAtivas, icon: "campaign" },
+        // Gamification
+        { label: "Missões concluídas", value: dash.missoesConcluidas ?? 0, icon: "task_alt" },
+        { label: "Troféus desbloqueados", value: dash.trofeusDesbloqueados ?? 0, icon: "emoji_events" },
       ]
     : [];
+
+  const retencao = dash?.retencao3Dias ?? 0;
 
   return (
     <AdminShell title="Painel gerencial" subtitle="Visão geral do programa FRIK">
@@ -58,6 +64,7 @@ export function AdminDashboardPage() {
       )}
       {dash && (
         <>
+          <AdminPdvSection />
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-10">
             {cards.map((c) => (
               <div
@@ -76,6 +83,23 @@ export function AdminDashboardPage() {
               </div>
             ))}
           </div>
+
+          <section className="mb-10 bg-gradient-to-r from-primary-container/30 to-surface-container rounded-2xl p-6 border border-primary/20 premium-shadow">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">local_fire_department</span>
+              Saúde do Engajamento (Streak)
+            </h2>
+            <p className="text-on-surface-variant text-sm mb-4">
+              Porcentagem de usuários que retornaram à plataforma com uma ofensiva de 3 dias ou mais.
+            </p>
+            <div className="flex items-center gap-4">
+              <div className="text-4xl font-black text-primary">{retencao}%</div>
+              <div className="flex-1 h-3 bg-surface-variant rounded-full overflow-hidden">
+                <div className="h-full bg-primary rounded-full transition-all duration-1000" style={{ width: `${retencao}%` }} />
+              </div>
+            </div>
+          </section>
+
           <section>
             <h2 className="text-headline-sm mb-4">Segmentação por nível</h2>
             <div className="overflow-x-auto rounded-2xl border border-outline-variant/30">

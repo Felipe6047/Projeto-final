@@ -1,21 +1,19 @@
-const nextJest = require('next/jest');
+const nextJest = require('next/jest.js');
 
-const createJestConfig = nextJest({ dir: './' });
+const createJestConfig = nextJest({
+  // Path to Next.js app to load next.config.js and .env files
+  dir: './',
+});
 
-const customJestConfig = {
-  testEnvironment: 'jest-environment-jsdom',
+// Add any custom config to be passed to Jest
+const config = {
+  coverageProvider: 'v8',
+  testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
-    '\\.(css|less|sass|scss)$': 'identity-obj-proxy',
+    '^@/(.*)$': '<rootDir>/src/$1',
   },
-  testMatch: ['**/__tests__/**/*.test.(ts|tsx)', '**/?(*.)+(spec|test).(ts|tsx)'],
-  collectCoverageFrom: [
-    'src/**/*.{ts,tsx}',
-    '!src/**/*.d.ts',
-    '!src/**/layout.{ts,tsx}',
-    '!src/**/page.{ts,tsx}',
-  ],
+  testMatch: ['<rootDir>/src/tests/**/*.test.{ts,tsx}'],
 };
 
-module.exports = createJestConfig(customJestConfig);
-
+module.exports = createJestConfig(config);

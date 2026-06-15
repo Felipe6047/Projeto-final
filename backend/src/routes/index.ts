@@ -8,6 +8,11 @@ import adminRoutes from "./admin.routes";
 import compraRoutes from "./compra.routes";
 import notificacaoRoutes from "./notificacao.routes";
 import salasRoutes from "./salas.routes";
+import simuladorCaixaRoutes from "./simulador-caixa.routes";
+import missoesRoutes from "./missoes.routes";
+import campanhasRoutes from "./campanhas.routes";
+import amigosRoutes from "./amigos.routes";
+import enderecoRoutes from "./endereco.routes";
 
 const router = Router();
 
@@ -24,5 +29,10 @@ router.use("/admin", adminRoutes);
 router.use("/compra", compraRoutes);
 router.use("/notificacoes", notificacaoRoutes);
 router.use("/salas", salasRoutes);
+router.use("/simulador-caixa", simuladorCaixaRoutes);
+router.use("/missoes", missoesRoutes);
+router.use("/campanhas", campanhasRoutes);
+router.use("/amigos", amigosRoutes);
+router.use("/enderecos", enderecoRoutes);
 
 export default router;

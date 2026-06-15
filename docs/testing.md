@@ -904,3 +904,34 @@ jobs:
 
 *Documento gerado com base no estado do repositório FRIK em 27/05/2026.*  
 *Revisão técnica — TDD First conforme metodologia definida.*
+
+---
+
+## 12. Estratégia de Testes de Frontend e Acessibilidade
+
+### 12.1 Testes de Componentes e Renderização Condicional
+* **LoginPage:** Validar a renderização do formulário padrão e, condicionalmente, o estado logado caso exista perfil ativo no contexto de autenticação.
+* **DashboardPage:** Testar a exibição condicional do banner de eventos sazonais quando ativos e o progresso do nível de fidelidade.
+* **Estados de Interface (Loading / Skeleton / Empty):**
+  * Validar exibição do Skeleton animado durante a busca de CEP no formulário de endereço de presentes.
+  * Validar exibição de telas vazias ilustradas quando o usuário não possuir cupons no mercado.
+
+### 12.2 Testes de Acessibilidade (A11y)
+* **Navegação por Teclado:** Validar que elementos acionáveis (botões, inputs e links) recebem foco sequencial por teclado (`Tab`) e exibem contorno visual claro (`--frik-primary`).
+* **Rótulos e Atributos ARIA:**
+  * Validar que modais de troca e presentes possuem `role="dialog"` e `aria-modal="true"`.
+  * Validar que campos de erro de formulário exibem `aria-invalid="true"`.
+* **Contraste:** Validar proporção mínima de contraste (WCAG AA) para textos primários e secundários tanto no tema claro quanto escuro.
+
+### 12.3 Testes Responsivos
+* **Mobile (até 640px):** Validar a renderização da navbar inferior fixa e colunas únicas de catálogo de produtos.
+* **Desktop (acima de 1024px):** Validar a exibição da sidebar lateral de navegação fixa e layouts de grade de três colunas.
+
+### 12.4 Testes de Integração com APIs e MSW (Mock Service Worker)
+* Simular respostas da API de Notas Fiscais (NFC-e), validando fluxos de sucesso, erro de nota duplicada e status de `confirmacao_pendente` para atualização opcional do CPF.
+* Simular respostas da API de pagamento mockada (PIX e Wallet), verificando a transição de status para `"pago"`.
+
+### 12.5 Testes de Regressão Visual e E2E (Fase Posterior)
+* Utilizar ferramentas de Snapshot Testing (Jest Snapshots) para capturar a estrutura HTML dos cards e modais principais, prevenindo alterações acidentais de layout.
+* Testes E2E (Playwright) para validar a jornada completa: *Simular Venda no Caixa do Lojista → Notificação em Tempo Real no Painel do Cliente → Resgate no Mercado de Recompensas*.
+

@@ -77,7 +77,8 @@ router.post("/:codigo/propor-troca", async (req, res, next) => {
     const result = await cupomService.proporTrocaSala(
       req.user!.id,
       body.cupomOfertadoId,
-      body.cupomSolicitadoId
+      body.cupomSolicitadoId,
+      req.params.codigo
     );
     if ("erro" in result) return fail(res, result.erro!);
     return ok(res, result, 201);

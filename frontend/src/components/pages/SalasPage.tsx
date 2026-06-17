@@ -37,7 +37,7 @@ export function SalasPage() {
     { id: number; titulo: string; codigo: string; proprietario_nome: string }[]
   >([]);
   const [propostas, setPropostas] = useState<
-    { id: string; solicitante_nome: string; proprietario_nome: string; proprietario_id: number }[]
+    { id: string; solicitante_nome: string; proprietario_nome: string; proprietario_id: number; solicitante_id: number; status: string }[]
   >([]);
   const [cupomOfertado, setCupomOfertado] = useState<number | null>(null);
   const [cupomAlvo, setCupomAlvo] = useState<number | null>(null);
@@ -128,9 +128,14 @@ export function SalasPage() {
   return (
     <AppShell searchPlaceholder="Buscar salas...">
       <div className="px-4 lg:px-[40px] pt-8 pb-24 max-w-2xl">
-        <h1 className="text-[32px] font-semibold mb-2">Salas de troca</h1>
-        <p className="text-on-surface-variant mb-8 text-sm">
-          Disponível para níveis Platina e Diamante. Crie uma sala ou entre com o código de convite.
+        <div className="flex items-center gap-4 mb-2">
+          <div className="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center">
+            <span className="material-symbols-outlined text-primary text-2xl">swap_horiz</span>
+          </div>
+          <h1 className="text-[32px] font-semibold">Feirão de Trocas</h1>
+        </div>
+        <p className="text-on-surface-variant mb-8 text-sm pl-16">
+          O Mercado C2C oficial. Crie uma sala ou entre com o código de convite para negociar seus cupons com outros jogadores de nível Platina e Diamante.
         </p>
 
         <section className="bg-card-cream rounded-2xl p-6 premium-shadow mb-6">
@@ -290,23 +295,46 @@ export function SalasPage() {
 
                 {propostas.length > 0 && (
                   <div className="mb-6">
-                    <h3 className="font-semibold mb-3">Propostas pendentes</h3>
+                    <h3 className="font-semibold mb-3">Propostas de Troca</h3>
                     <ul className="space-y-2">
                       {propostas.map((p) => {
                         const amIProprietario = user?.id === p.proprietario_id;
+                        const isPendente = p.status === "pendente";
+                        const isAceita = p.status === "aceita";
+                        const isRecusada = p.status === "recusada";
                         return (
-                          <li key={p.id} className="p-3 bg-surface-container-high rounded-xl text-sm">
-                            <p>{p.solicitante_nome} → {p.proprietario_nome}</p>
-                            <div className="flex gap-2 mt-2">
-                              {amIProprietario ? (
-                                <>
-                                  <button type="button" onClick={() => responder(p.id, true)} className="text-xs font-bold text-primary">Aceitar</button>
-                                  <button type="button" onClick={() => responder(p.id, false)} className="text-xs font-bold text-error">Recusar</button>
-                                </>
-                              ) : (
-                                <span className="text-xs text-on-surface-variant font-medium">Aguardando resposta...</span>
+                          <li key={p.id} className={`p-3 rounded-xl text-sm border ${
+                            isAceita ? "bg-primary/5 border-primary/30" :
+                            isRecusada ? "bg-error/5 border-error/20" :
+                            "bg-surface-container-high border-transparent"
+                          }`}>
+                            <div className="flex justify-between items-start">
+                              <p>{p.solicitante_nome} → {p.proprietario_nome}</p>
+                              {isAceita && (
+                                <span className="text-xs font-bold text-primary bg-primary/15 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-[12px]">check_circle</span>
+                                  Aceita
+                                </span>
+                              )}
+                              {isRecusada && (
+                                <span className="text-xs font-bold text-error bg-error/15 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-[12px]">cancel</span>
+                                  Recusada
+                                </span>
                               )}
                             </div>
+                            {isPendente && (
+                              <div className="flex gap-2 mt-2">
+                                {amIProprietario ? (
+                                  <>
+                                    <button type="button" onClick={() => responder(p.id, true)} className="text-xs font-bold text-primary hover:underline">Aceitar</button>
+                                    <button type="button" onClick={() => responder(p.id, false)} className="text-xs font-bold text-error hover:underline">Recusar</button>
+                                  </>
+                                ) : (
+                                  <span className="text-xs text-on-surface-variant font-medium italic">Aguardando resposta...</span>
+                                )}
+                              </div>
+                            )}
                           </li>
                         );
                       })}

@@ -10,9 +10,15 @@ router.get("/", async (req, res, next) => {
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.max(1, Number(req.query.limit) || 10);
     const skip = (page - 1) * limit;
+    const categoria = req.query.categoria as string;
+
+    const where: any = { ativo: true };
+    if (categoria && categoria !== 'Todos') {
+      where.categoria = categoria;
+    }
 
     const [rows, total] = await AppDataSource.getRepository(Produto).findAndCount({
-      where: { ativo: true },
+      where,
       order: { nome: "ASC" },
       skip,
       take: limit,
@@ -24,6 +30,7 @@ router.get("/", async (req, res, next) => {
         precoPontos: true,
         estoque: true,
         imagemUrl: true,
+        categoria: true,
       },
     });
     const mapped = rows.map((p) => ({
@@ -34,6 +41,7 @@ router.get("/", async (req, res, next) => {
       preco_pontos: p.precoPontos,
       estoque: p.estoque,
       imagem_url: p.imagemUrl,
+      categoria: p.categoria,
     }));
     return ok(res, {
       data: mapped,
@@ -59,6 +67,7 @@ router.get("/:id", async (req, res, next) => {
         precoPontos: true,
         estoque: true,
         imagemUrl: true,
+        categoria: true,
       },
     });
     if (!produto) return res.status(404).json({ erro: "Produto não encontrado" });
@@ -70,6 +79,7 @@ router.get("/:id", async (req, res, next) => {
       preco_pontos: produto.precoPontos,
       estoque: produto.estoque,
       imagem_url: produto.imagemUrl,
+      categoria: produto.categoria,
     });
   } catch (e) {
     next(e);

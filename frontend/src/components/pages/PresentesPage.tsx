@@ -18,6 +18,8 @@ import {
   getEnderecoAmigo,
   getMeusCupons,
   Cupom,
+  CartaoCredito,
+  listarMeusCartoes,
 } from "@/lib/api";
 import { buscarCep } from "@/lib/viacep";
 import { mascaraCep } from "@/lib/validators";
@@ -25,7 +27,7 @@ import { mascaraCep } from "@/lib/validators";
 type Produto = {
   id: number;
   nome: string;
-  descricao: string;
+  descricao: string | null;
   preco_reais: number | string;
   preco_pontos: number;
   estoque: number;
@@ -54,7 +56,6 @@ export function PresentesPage() {
   >([]);
 
   const [carrinho, setCarrinho] = useState<{ produto: Produto; qtd: number }[]>([]);
-  const [pctPontos, setPctPontos] = useState(100);
 
   const [tipoDest, setTipoDest] = useState<"pessoal" | "presente">("pessoal");
   const [destUsuarioId, setDestUsuarioId] = useState<number | undefined>();
@@ -86,6 +87,8 @@ export function PresentesPage() {
   const [nomeCartao, setNomeCartao] = useState("");
   const [validadeCartao, setValidadeCartao] = useState("");
   const [cvvCartao, setCvvCartao] = useState("");
+  const [cartoesSalvos, setCartoesSalvos] = useState<CartaoCredito[]>([]);
+  const [cartaoSalvoSelecionadoId, setCartaoSalvoSelecionadoId] = useState<number | "">("");
 
   const [pixModal, setPixModal] = useState<{
     pedidoId: number;
@@ -135,6 +138,7 @@ export function PresentesPage() {
     listarPedidosPresente().then(setPedidos).catch(() => []);
     getMeusAmigos().then(setAmigos).catch(() => []);
     getMeusCupons().then(setMeusCupons).catch(() => []);
+    listarMeusCartoes().then(setCartoesSalvos).catch(() => []);
     getPerfil()
       .then((p) => {
         if (tipoDest === "pessoal") preencherPessoal(p);
@@ -228,7 +232,7 @@ export function PresentesPage() {
     return produtos.filter(
       (p) =>
         p.nome.toLowerCase().includes(q) ||
-        p.descricao.toLowerCase().includes(q)
+        (p.descricao && p.descricao.toLowerCase().includes(q))
     );
   }, [produtos, busca]);
 
@@ -236,22 +240,15 @@ export function PresentesPage() {
     () => carrinho.reduce((s, i) => s + Number(i.produto.preco_reais) * i.qtd, 0),
     [carrinho]
   );
-  const totalPts = useMemo(
-    () => carrinho.reduce((s, i) => s + i.produto.preco_pontos * i.qtd, 0),
-    [carrinho]
-  );
-  const pontosUsados = Math.round((totalPts * pctPontos) / 100);
+  
   const cupomObj = meusCupons.find(c => String(c.id) === cupomSelecionadoId);
   const isFreteGratis = cupomObj?.categoria?.toLowerCase().includes("frete");
   
   const descontoPercent = (cupomObj && !isFreteGratis) ? (cupomObj.desconto_percentual || 10) : 0;
-  const descontoCupomValor = Math.round(((totalReais * (100 - pctPontos)) / 100) * descontoPercent) / 100;
+  const descontoCupomValor = Math.round((totalReais * descontoPercent) / 100);
   const freteBase = (totalReais > 0 && !isFreteGratis) ? freteCalc : 0;
   
-  const subtotalReais = Math.max(
-    0,
-    Math.round(((totalReais * (100 - pctPontos)) / 100 - descontoCupomValor) * 100) / 100
-  );
+  const subtotalReais = Math.max(0, totalReais - descontoCupomValor);
   const saldoWallet = perfil?.saldo_wallet ? Number(perfil.saldo_wallet) : 0;
   
   // Se escolheu Carteira Digital, tenta abater 100%
@@ -316,10 +313,6 @@ export function PresentesPage() {
       calcularFreteOSRM(cidade, uf, logradouro);
     }
     if (etapa === 3) { // Pagamento -> Resumo
-      if (pontosUsados > saldoPts) {
-        toast("Pontos insuficientes na simulação", "error");
-        return;
-      }
       if (formaPagamentoProduto === "wallet" && saldoWallet < subtotalReais + freteBase) {
         toast("Saldo de Cashback insuficiente para pagar o pedido completo.", "error");
         return;
@@ -345,7 +338,7 @@ export function PresentesPage() {
           produtoId: c.produto.id,
           quantidade: c.qtd,
         })),
-        pontosUsados,
+        pontosUsados: 0,
         valorReais: restanteReais,
         walletUsado: carteiraAplicada,
         valorPix,
@@ -364,6 +357,7 @@ export function PresentesPage() {
           uf,
         },
         mensagem: mensagem || undefined,
+        isPessoal: tipoDest === "pessoal",
       });
 
       if (res.aguardaPix && res.valorPix) {
@@ -430,11 +424,11 @@ export function PresentesPage() {
 
   return (
     <AppShell searchPlaceholder="Buscar produtos...">
-      <div className="px-4 lg:px-[40px] pt-6 pb-32 max-w-5xl mx-auto">
-        <h1 className="text-[32px] font-semibold mb-2">Loja & Entregas</h1>
+      <div className="px-4 lg:px-[40px] pt-6 pb-48 max-w-5xl mx-auto">
+        <h1 className="text-[32px] font-bold mb-1">Loja &amp; Carrinho</h1>
         <p className="text-on-surface-variant mb-6 text-sm">Compre para você ou envie como presente. Acompanhe suas entregas.</p>
 
-        <div className="flex gap-2 mb-8">
+        <div className="flex flex-col sm:flex-row gap-2 mb-8">
           <button
             type="button"
             onClick={() => setAbaAtiva("loja")}
@@ -453,33 +447,58 @@ export function PresentesPage() {
 
         {abaAtiva === "pedidos" && (
           <section className="bg-card-cream rounded-2xl p-6 premium-shadow">
-            <h2 className="text-xl font-semibold mb-4">Meus pedidos</h2>
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">local_shipping</span>
+              Meus Pedidos
+            </h2>
             {pedidos.length === 0 ? (
-               <p className="text-on-surface-variant text-sm">Você ainda não tem nenhum pedido.</p>
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <span className="material-symbols-outlined text-5xl text-outline mb-3">package_2</span>
+                <p className="font-bold">Nenhum pedido ainda</p>
+                <p className="text-sm text-on-surface-variant">Comece comprando na loja!</p>
+                <button type="button" onClick={() => setAbaAtiva("loja")} className="mt-4 px-6 py-2 bg-primary text-on-primary rounded-full font-bold text-sm">Ir para Loja</button>
+              </div>
             ) : (
               <ul className="space-y-3">
-                {pedidos.map((p) => (
-                  <li key={p.id} className="flex justify-between items-center p-4 bg-surface-container-high rounded-xl text-sm border border-outline-variant/30">
-                    <div>
-                      <p className="font-bold text-lg mb-1">{p.destinatario_nome}</p>
-                      <p className="text-on-surface-variant">R$ {Number(p.valor_reais).toFixed(2)} — Status: <strong className="text-primary capitalize">{p.status.replace("_", " ")}</strong></p>
-                      <p className="text-xs text-on-surface-variant mt-1">{new Date(p.criado_em || Date.now()).toLocaleString("pt-BR")}</p>
-                    </div>
-                    {["pago", "enviado", "a_caminho"].includes(p.status) && (
-                      <button type="button" onClick={async () => { await avancarStatusPedido(p.id); listarPedidosPresente().then(setPedidos); }} className="px-4 py-2 bg-primary/10 rounded-full text-sm font-bold text-primary hover:bg-primary/20">
-                        Avançar status
-                      </button>
-                    )}
-                  </li>
-                ))}
+                {pedidos.map((p) => {
+                  const statusInfo: Record<string, {icon: string, color: string, label: string}> = {
+                    pendente: { icon: "schedule", color: "text-warning", label: "Pendente" },
+                    pago: { icon: "payments", color: "text-success", label: "Pago" },
+                    enviado: { icon: "local_shipping", color: "text-primary", label: "Enviado" },
+                    a_caminho: { icon: "delivery_truck_speed", color: "text-primary", label: "A caminho" },
+                    entregue: { icon: "done_all", color: "text-success", label: "Entregue" },
+                    cancelado: { icon: "cancel", color: "text-error", label: "Cancelado" },
+                  };
+                  const info = statusInfo[p.status] ?? { icon: "help", color: "text-on-surface-variant", label: p.status };
+                  return (
+                    <li key={p.id} className="flex flex-col sm:flex-row justify-between sm:items-center p-5 bg-surface-container-high rounded-2xl gap-4 border border-outline-variant/20">
+                      <div className="flex items-start gap-4">
+                        <span className={`material-symbols-outlined text-3xl ${info.color}`} style={{fontVariationSettings: "'FILL' 1"}}>{info.icon}</span>
+                        <div>
+                          <p className="font-bold text-base">{p.destinatario_nome}</p>
+                          <p className="text-sm text-primary font-semibold">R$ {Number(p.valor_reais).toFixed(2)}</p>
+                          <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${info.color} bg-current/10`}>{info.label}</span>
+                          <p className="text-xs text-on-surface-variant mt-1">{new Date(p.criado_em || Date.now()).toLocaleString("pt-BR")}</p>
+                        </div>
+                      </div>
+                      {["pago", "enviado", "a_caminho"].includes(p.status) && (
+                        <button type="button" onClick={async () => { await avancarStatusPedido(p.id); listarPedidosPresente().then(setPedidos); }} className="px-5 py-2 bg-primary text-on-primary rounded-full text-sm font-bold hover:scale-105 transition-transform shrink-0">
+                          Avançar Status
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>
         )}
 
         {abaAtiva === "loja" && (
-          <>
-            <div className="flex gap-2 mb-6 flex-wrap">
+          <div className="flex flex-col xl:flex-row gap-8">
+            {/* Coluna Principal */}
+            <div className="flex-1 min-w-0">
+              <div className="flex gap-2 mb-6 flex-wrap">
               {ETAPAS.map((label, i) => (
                 <div
                   key={label}
@@ -491,7 +510,7 @@ export function PresentesPage() {
                   {label}
                 </div>
               ))}
-            </div>
+              </div>
 
             {etapa === 0 && ( // Produtos
               <>
@@ -512,25 +531,24 @@ export function PresentesPage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {produtosFiltrados.map((p, index) => {
-                      const inCart = carrinho.some((c) => c.produto.id === p.id);
+                      const cartItem = carrinho.find((c) => c.produto.id === p.id);
                       const isLast = index === produtosFiltrados.length - 1;
                       return (
-                        <div ref={isLast ? lastElementRef : null} key={p.id} className={`bg-card-cream flex flex-col rounded-3xl overflow-hidden premium-shadow transition-all ${inCart ? "ring-2 ring-primary" : ""}`}>
+                        <div ref={isLast ? lastElementRef : null} key={p.id} className={`bg-card-cream flex flex-col rounded-3xl overflow-hidden premium-shadow transition-all ${cartItem ? "ring-2 ring-primary" : ""}`}>
                           <div className="h-40 bg-secondary-container flex items-center justify-center relative">
                             {p.imagem_url ? (
                               <img src={p.imagem_url} alt={p.nome} className="w-full h-full object-cover" />
                             ) : (
                               <span className="material-symbols-outlined text-primary text-5xl opacity-40">redeem</span>
                             )}
-                            {inCart && <span className="absolute top-4 right-4 bg-primary text-on-primary text-xs font-bold px-3 py-1 rounded-full">No carrinho</span>}
+                            {cartItem && <span className="absolute top-4 right-4 bg-primary text-on-primary text-xs font-bold px-3 py-1 rounded-full">No carrinho ({cartItem.qtd}x)</span>}
                           </div>
                           <div className="p-6">
                             <h3 className="text-lg font-semibold">{p.nome}</h3>
                             <p className="text-sm text-on-surface-variant mt-1 line-clamp-2">{p.descricao}</p>
                             <div className="flex justify-between items-center mt-4">
                               <div className="text-sm">
-                                <p className="font-bold text-primary">{p.preco_pontos.toLocaleString("pt-BR")} pts</p>
-                                <p className="text-on-surface-variant">ou R$ {Number(p.preco_reais).toFixed(2)}</p>
+                                <p className="font-bold text-primary">R$ {Number(p.preco_reais).toFixed(2)}</p>
                               </div>
                               <button type="button" onClick={() => adicionarAoCarrinho(p)} className="bg-primary text-on-primary p-3 rounded-full hover:scale-105 transition-transform shadow-md">
                                 <span className="material-symbols-outlined text-lg">add_shopping_cart</span>
@@ -557,10 +575,21 @@ export function PresentesPage() {
                 ) : (
                   <div className="space-y-4">
                     {carrinho.map(c => (
-                      <div key={c.produto.id} className="flex justify-between items-center bg-surface-container-high p-4 rounded-xl">
-                        <div>
-                          <p className="font-bold">{c.produto.nome}</p>
-                          <p className="text-xs text-primary">{c.produto.preco_pontos} pts | R$ {Number(c.produto.preco_reais).toFixed(2)}</p>
+                      <div key={c.produto.id} className="flex flex-col sm:flex-row justify-between sm:items-center bg-surface-container-high p-4 rounded-2xl gap-4">
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-surface-container-low overflow-hidden flex-shrink-0 border border-outline-variant/20">
+                            {c.produto.imagem_url ? (
+                              <img src={c.produto.imagem_url} alt={c.produto.nome} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center opacity-40">
+                                <span className="material-symbols-outlined text-3xl">inventory_2</span>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-bold text-base sm:text-lg">{c.produto.nome}</p>
+                            <p className="text-sm text-primary font-semibold">R$ {Number(c.produto.preco_reais).toFixed(2)}</p>
+                          </div>
                         </div>
                         <div className="flex items-center gap-3">
                            <button onClick={() => alterarQtd(c.produto.id, -1)} className="w-8 h-8 flex items-center justify-center bg-surface-container-low rounded-full font-bold">-</button>
@@ -572,8 +601,7 @@ export function PresentesPage() {
                     ))}
                     <div className="border-t border-outline-variant/30 pt-4 mt-6 text-right">
                        <p className="text-on-surface-variant">Total Estimado</p>
-                       <p className="text-2xl font-bold text-primary">{totalPts} pts</p>
-                       <p className="text-sm font-bold text-on-surface-variant">ou R$ {totalReais.toFixed(2)}</p>
+                       <p className="text-2xl font-bold text-primary">R$ {totalReais.toFixed(2)}</p>
                     </div>
                   </div>
                 )}
@@ -705,26 +733,12 @@ export function PresentesPage() {
               <div className="max-w-2xl bg-card-cream rounded-3xl p-8 premium-shadow space-y-8">
                 <div>
                   <h3 className="text-xl font-semibold mb-2">Composição do Pagamento</h3>
-                  <p className="text-sm text-on-surface-variant mb-6">Escolha quanto do valor pagar com pontos e quanto pagar em reais.</p>
                   
                   <div className="bg-surface-container-high p-6 rounded-2xl mb-6">
                      <p className="text-xs font-bold text-primary mb-2 uppercase tracking-wider">Subtotal: R$ {totalReais.toFixed(2)}</p>
                      <p className="text-xs font-bold text-primary mb-4 uppercase tracking-wider">
                        Frete: {loadingFrete ? "Calculando..." : `R$ ${freteBase.toFixed(2)}`}
                      </p>
-                     
-                     <input type="range" min={0} max={100} step={5} value={pctPontos} onChange={(e) => setPctPontos(Number(e.target.value))} className="w-full accent-primary h-2 bg-outline-variant/30 rounded-lg appearance-none cursor-pointer" />
-                     
-                     <div className="flex justify-between mt-4">
-                       <div className="text-center">
-                         <p className="text-xs text-on-surface-variant uppercase font-bold">Com Pontos</p>
-                         <p className="text-xl font-bold text-primary">{pontosUsados.toLocaleString("pt-BR")} pts</p>
-                       </div>
-                       <div className="text-center">
-                         <p className="text-xs text-on-surface-variant uppercase font-bold">Em Dinheiro</p>
-                         <p className="text-xl font-bold">R$ {restanteReais.toFixed(2)}</p>
-                       </div>
-                     </div>
                   </div>
                   
                   {meusCupons.length > 0 && (
@@ -748,16 +762,35 @@ export function PresentesPage() {
                     </div>
                   )}
                   
-                  {/* Exibir o slider apenas se a forma de pagamento não for exclusivamente Wallet e houver saldo */}
                   {saldoWallet > 0 && formaPagamentoProduto !== "wallet" && (
                     <div className="bg-surface-container-high p-6 rounded-2xl mb-6 border border-outline-variant/30">
-                      <p className="text-sm font-bold text-primary mb-2 uppercase tracking-wider">Usar Cashback Parcial</p>
-                      <p className="text-xs text-on-surface-variant mb-4">Você tem R$ {Math.min(saldoWallet, subtotalReais + freteBase).toFixed(2)} disponíveis para abater deste pedido.</p>
-                      <input type="range" min={0} max={Math.min(saldoWallet, subtotalReais + freteBase)} step={0.5} value={walletUsado} onChange={(e) => setWalletUsado(Number(e.target.value))} className="w-full accent-primary h-2 bg-outline-variant/30 rounded-lg appearance-none cursor-pointer" />
-                      <div className="flex justify-between mt-2">
-                        <span className="text-xs font-bold text-on-surface-variant">R$ 0,00</span>
-                        <span className="text-xs font-bold text-primary">R$ {walletUsado.toFixed(2)}</span>
-                        <span className="text-xs font-bold text-on-surface-variant">R$ {Math.min(saldoWallet, subtotalReais + freteBase).toFixed(2)}</span>
+                      <div className="flex justify-between items-center mb-3">
+                        <p className="text-sm font-bold text-primary uppercase tracking-wider">Usar Cashback</p>
+                        <div className="flex items-center gap-1.5 bg-primary/10 px-3 py-1.5 rounded-full">
+                          <span className="material-symbols-outlined text-primary text-[16px]">account_balance_wallet</span>
+                          <span className="text-xs font-black text-primary">R$ {saldoWallet.toFixed(2)} disponível</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <div className="relative flex-1">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-bold">R$</span>
+                          <input 
+                            type="number" 
+                            min={0} 
+                            max={Math.min(saldoWallet, subtotalReais + freteBase)} 
+                            step={0.01} 
+                            value={walletUsado || ""} 
+                            onChange={(e) => setWalletUsado(Number(e.target.value))} 
+                            className="w-full bg-surface-container-lowest rounded-xl px-4 py-3 pl-12 border border-outline-variant/20 font-bold" 
+                          />
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={() => setWalletUsado(Math.min(saldoWallet, subtotalReais + freteBase))}
+                          className="px-4 py-3 bg-primary/20 text-primary rounded-xl font-bold hover:bg-primary/30 transition-colors whitespace-nowrap"
+                        >
+                          Usar Máximo
+                        </button>
                       </div>
                     </div>
                   )}
@@ -788,12 +821,78 @@ export function PresentesPage() {
 
                     {formaPagamentoProduto === "cartao" && (
                       <div className="bg-surface-container-high p-6 rounded-2xl space-y-4">
-                        <input placeholder="Número do Cartão" value={numCartao} onChange={e => setNumCartao(e.target.value)} className="w-full bg-surface-container-lowest rounded-xl px-4 py-3 border border-outline-variant/20" />
-                        <input placeholder="Nome Impresso no Cartão" value={nomeCartao} onChange={e => setNomeCartao(e.target.value)} className="w-full bg-surface-container-lowest rounded-xl px-4 py-3 border border-outline-variant/20" />
-                        <div className="flex gap-4">
-                          <input placeholder="MM/AA" value={validadeCartao} onChange={e => setValidadeCartao(e.target.value)} className="w-1/2 bg-surface-container-lowest rounded-xl px-4 py-3 border border-outline-variant/20" />
-                          <input placeholder="CVV" value={cvvCartao} onChange={e => setCvvCartao(e.target.value)} className="w-1/2 bg-surface-container-lowest rounded-xl px-4 py-3 border border-outline-variant/20" />
-                        </div>
+                        {cartoesSalvos.length > 0 && (
+                          <div className="mb-2">
+                            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Cartão Salvo</label>
+                            <div className="space-y-2">
+                              {cartoesSalvos.map((c) => (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setCartaoSalvoSelecionadoId(c.id);
+                                    setNumCartao(c.numero);
+                                    setNomeCartao(c.nomeTitular);
+                                    setValidadeCartao(c.validade);
+                                    setCvvCartao(c.cvv);
+                                  }}
+                                  className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-colors text-left ${
+                                    cartaoSalvoSelecionadoId === c.id
+                                      ? "border-primary bg-primary/10"
+                                      : "border-outline-variant hover:bg-surface-container-high"
+                                  }`}
+                                >
+                                  <span className="material-symbols-outlined text-primary">credit_card</span>
+                                  <div>
+                                    <p className="font-semibold text-sm">{c.apelido || "Cartão"} **** {c.numero.slice(-4)}</p>
+                                    <p className="text-xs text-on-surface-variant">{c.nomeTitular} · Val: {c.validade}</p>
+                                  </div>
+                                  {c.principal && <span className="ml-auto text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">Principal</span>}
+                                </button>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCartaoSalvoSelecionadoId("");
+                                  setNumCartao("");
+                                  setNomeCartao("");
+                                  setValidadeCartao("");
+                                  setCvvCartao("");
+                                }}
+                                className={`w-full p-3 rounded-xl border text-sm transition-colors ${
+                                  cartaoSalvoSelecionadoId === ""
+                                    ? "border-primary bg-primary/10 text-primary font-semibold"
+                                    : "border-outline-variant text-on-surface-variant hover:bg-surface-container-high"
+                                }`}
+                              >
+                                + Digitar novo cartão
+                              </button>
+                            </div>
+                            {cartaoSalvoSelecionadoId === "" && <div className="border-t border-outline-variant/30 mt-4 pt-4" />}
+                          </div>
+                        )}
+                        {cartaoSalvoSelecionadoId === "" && (
+                          <>
+                            <div>
+                              <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Número do Cartão</label>
+                              <input placeholder="0000 0000 0000 0000" value={numCartao} onChange={e => setNumCartao(e.target.value)} className="w-full bg-surface-container-lowest rounded-xl px-4 py-3 border border-outline-variant/20 font-mono text-lg tracking-widest" />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Nome do Titular</label>
+                              <input placeholder="Nome como está no cartão" value={nomeCartao} onChange={e => setNomeCartao(e.target.value)} className="w-full bg-surface-container-lowest rounded-xl px-4 py-3 border border-outline-variant/20" />
+                            </div>
+                            <div className="flex gap-4">
+                              <div className="flex-1">
+                                <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Validade</label>
+                                <input placeholder="MM/AA" value={validadeCartao} onChange={e => setValidadeCartao(e.target.value)} className="w-full bg-surface-container-lowest rounded-xl px-4 py-3 border border-outline-variant/20 text-center font-mono" />
+                              </div>
+                              <div className="flex-1">
+                                <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">CVV</label>
+                                <input placeholder="123" value={cvvCartao} onChange={e => setCvvCartao(e.target.value)} className="w-full bg-surface-container-lowest rounded-xl px-4 py-3 border border-outline-variant/20 text-center font-mono" />
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
                     {formaPagamentoProduto === "pix" && (
@@ -829,7 +928,6 @@ export function PresentesPage() {
 
                   <h4 className="text-sm font-bold text-primary mb-3 uppercase tracking-wider">Valores</h4>
                   <div className="text-sm space-y-1">
-                    <p className="flex justify-between text-on-surface-variant"><span>Pontos aplicados:</span> <span>{pontosUsados} pts</span></p>
                     <p className="flex justify-between text-on-surface-variant"><span>Subtotal Reais:</span> <span>R$ {subtotalReais.toFixed(2)}</span></p>
                     <p className="flex justify-between text-on-surface-variant"><span>Frete:</span> <span>R$ {freteBase.toFixed(2)}</span></p>
                     {descontoCupomValor > 0 && (
@@ -852,28 +950,44 @@ export function PresentesPage() {
               </div>
             )}
 
-            {abaAtiva === "loja" && carrinho.length > 0 && etapa === 0 && (
-              <div className="fixed bottom-24 lg:bottom-8 right-8 z-40 bg-primary text-on-primary w-14 h-14 rounded-full flex items-center justify-center font-bold shadow-lg ring-4 ring-primary-container">
-                {carrinho.reduce((acc, c) => acc + c.qtd, 0)}
-              </div>
-            )}
-
-            <footer className="fixed bottom-20 lg:bottom-8 right-4 lg:right-8 left-4 lg:left-[312px] bg-surface-container-lowest/95 backdrop-blur-xl p-6 rounded-3xl border border-outline-variant/30 flex justify-between items-center gap-4 z-40">
-              <button type="button" disabled={etapa === 0} onClick={() => setEtapa((e) => e - 1)} className="px-6 py-3 rounded-full border border-outline-variant font-semibold disabled:opacity-40 hover:bg-surface-container-high">
+            <footer className="fixed bottom-20 lg:bottom-8 right-4 lg:right-8 left-4 lg:left-[312px] bg-surface-container-lowest/95 backdrop-blur-xl p-4 sm:p-6 rounded-3xl border border-outline-variant/30 flex justify-between items-center gap-4 z-40 shadow-2xl">
+              <button type="button" disabled={etapa === 0} onClick={() => setEtapa((e) => e - 1)} className="flex items-center gap-2 px-5 py-3 rounded-full border border-outline-variant font-semibold disabled:opacity-40 hover:bg-surface-container-high transition-colors">
+                <span className="material-symbols-outlined text-[18px]">arrow_back</span>
                 Voltar
               </button>
-              {etapa < ETAPAS.length - 1 ? (
-                <button type="button" onClick={avancar} className="flex items-center gap-2 bg-primary text-on-primary px-8 py-3 rounded-full font-bold shadow-md hover:scale-[1.02] transition-transform">
-                  Continuar
-                  <span className="material-symbols-outlined">arrow_forward</span>
-                </button>
-              ) : (
-                <button type="button" disabled={enviando} onClick={enviarPresenteProduto} className="flex items-center gap-2 bg-primary text-on-primary px-8 py-3 rounded-full font-bold disabled:opacity-50 shadow-md hover:scale-[1.02] transition-transform">
-                  {enviando ? "Processando..." : "Confirmar Pedido"}
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                {etapa > 0 && carrinho.length > 0 && (
+                  <span className="text-sm text-on-surface-variant font-medium hidden sm:block">
+                    {carrinho.reduce((acc, c) => acc + c.qtd, 0)} item(s) · R$ {totalReais.toFixed(2)}
+                  </span>
+                )}
+                {etapa === 0 ? (
+                  <button type="button" onClick={avancar} className="flex items-center gap-2 bg-primary text-on-primary px-6 sm:px-8 py-3 rounded-full font-bold shadow-md hover:scale-[1.02] transition-transform">
+                    Ir para Carrinho
+                    {carrinho.length > 0 && (
+                      <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">
+                        {carrinho.reduce((acc, c) => acc + c.qtd, 0)}
+                      </span>
+                    )}
+                    <span className="material-symbols-outlined">shopping_cart_checkout</span>
+                  </button>
+                ) : etapa < ETAPAS.length - 1 ? (
+                  <button type="button" onClick={avancar} className="flex items-center gap-2 bg-primary text-on-primary px-6 sm:px-8 py-3 rounded-full font-bold shadow-md hover:scale-[1.02] transition-transform">
+                    Continuar
+                    <span className="material-symbols-outlined">arrow_forward</span>
+                  </button>
+                ) : (
+                  <button type="button" disabled={enviando} onClick={enviarPresenteProduto} className="flex items-center gap-2 bg-primary text-on-primary px-6 sm:px-8 py-3 rounded-full font-bold disabled:opacity-50 shadow-md hover:scale-[1.02] transition-transform">
+                    <span className="material-symbols-outlined">check_circle</span>
+                    {enviando ? "Processando..." : "Confirmar Pedido"}
+                  </button>
+                )}
+              </div>
             </footer>
-          </>
+          </div>
+
+          {/* Coluna Lateral - Resumo do Carrinho (sticky) */}
+        </div>
         )}
       </div>
 

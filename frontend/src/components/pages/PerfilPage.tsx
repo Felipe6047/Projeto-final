@@ -23,6 +23,11 @@ import {
   atualizarEndereco,
   excluirEndereco,
   excluirConta,
+  CartaoCredito,
+  listarMeusCartoes,
+  criarCartao,
+  atualizarCartao,
+  excluirCartao,
 } from "@/lib/api";
 import { useToast } from "@/context/ToastContext";
 import { cpfValido, mascaraCpf, mascaraCep } from "@/lib/validators";
@@ -77,6 +82,11 @@ export function PerfilPage() {
   const [enderecoEdicao, setEnderecoEdicao] = useState<Partial<Endereco> | null>(null);
   const [processandoEndereco, setProcessandoEndereco] = useState(false);
 
+  const [cartoes, setCartoes] = useState<CartaoCredito[]>([]);
+  const [modalCartao, setModalCartao] = useState(false);
+  const [cartaoEdicao, setCartaoEdicao] = useState<Partial<CartaoCredito> | null>(null);
+  const [processandoCartao, setProcessandoCartao] = useState(false);
+
   useEffect(() => {
     Promise.all([
       getPerfil(),
@@ -86,8 +96,9 @@ export function PerfilPage() {
       getMeusAmigos(),
       getTodasConquistas(),
       listarMeusEnderecos(),
+      listarMeusCartoes(),
     ])
-      .then(([p, h, c, w, a, cq, ends]) => {
+      .then(([p, h, c, w, a, cq, ends, crts]) => {
         setPerfil(p);
         setHistorico(h);
         setCompras(c);
@@ -95,6 +106,7 @@ export function PerfilPage() {
         setAmigos(a);
         setConquistas(cq);
         setEnderecos(ends);
+        setCartoes(crts);
         if (p.cpf) setKycCpf(mascaraCpf(p.cpf));
       })
       .catch((e: ApiError) => setErro(e.message))
@@ -237,54 +249,28 @@ export function PerfilPage() {
             <div className="flex flex-col gap-2">
               <Link
                 href="/mercado-cupons"
-                className="py-3 px-4 rounded-xl bg-surface-container-high hover:bg-primary-container/30 font-semibold text-sm"
+                className="py-3 px-4 rounded-xl bg-surface-container-high hover:bg-primary-container/30 font-semibold text-sm flex items-center gap-3"
               >
-                Mercado de cupons
-              </Link>
-              <Link
-                href="/presentes"
-                className="py-3 px-4 rounded-xl bg-surface-container-high hover:bg-primary-container/30 font-semibold text-sm"
-              >
-                Enviar presentes
-              </Link>
-              <Link
-                href="/ranking"
-                className="py-3 px-4 rounded-xl bg-surface-container-high hover:bg-primary-container/30 font-semibold text-sm"
-              >
-                Ver ranking
+                <span className="material-symbols-outlined text-primary">local_activity</span>
+                Meus Cupons
               </Link>
               <Link
                 href="/salas"
-                className="py-3 px-4 rounded-xl bg-surface-container-high hover:bg-primary-container/30 font-semibold text-sm"
+                className="py-3 px-4 rounded-xl bg-surface-container-high hover:bg-primary-container/30 font-semibold text-sm flex items-center gap-3"
               >
-                Salas de troca
+                <span className="material-symbols-outlined text-primary">swap_horiz</span>
+                Feirão de Trocas
+              </Link>
+              <Link
+                href="/ranking"
+                className="py-3 px-4 rounded-xl bg-surface-container-high hover:bg-primary-container/30 font-semibold text-sm flex items-center gap-3"
+              >
+                <span className="material-symbols-outlined text-primary">emoji_events</span>
+                Ver Ranking
               </Link>
             </div>
           </div>
         </section>
-
-        {compras.length > 0 && (
-          <section className="mb-12">
-            <p className="frik-label text-primary mb-2">Compras</p>
-            <h2 className="text-[28px] font-semibold mb-4">Últimas compras</h2>
-            <ul className="space-y-2">
-              {compras.map((c) => (
-                <li
-                  key={c.id}
-                  className="flex justify-between p-4 bg-surface-container-high rounded-xl text-sm"
-                >
-                  <span>
-                    R$ {Number(c.valor_total).toFixed(2)} ·{" "}
-                    {new Date(c.criado_em).toLocaleDateString("pt-BR")}
-                  </span>
-                  <span className="font-bold text-primary">
-                    +{c.pontos_gerados} pts
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
 
         <section className="mb-12">
           <h2 className="text-2xl font-semibold mb-4">Minhas Conquistas</h2>
@@ -317,6 +303,29 @@ export function PerfilPage() {
             })}
           </div>
         </section>
+
+        {compras.length > 0 && (
+          <section className="mb-12">
+            <p className="frik-label text-primary mb-2">Compras</p>
+            <h2 className="text-[28px] font-semibold mb-4">Últimas compras</h2>
+            <ul className="space-y-2">
+              {compras.map((c) => (
+                <li
+                  key={c.id}
+                  className="flex justify-between p-4 bg-surface-container-high rounded-xl text-sm"
+                >
+                  <span>
+                    R$ {Number(c.valor_total).toFixed(2)} ·{" "}
+                    {new Date(c.criado_em).toLocaleDateString("pt-BR")}
+                  </span>
+                  <span className="font-bold text-primary">
+                    +{c.pontos_gerados} pts
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <section className="mb-12 bg-surface-container-low rounded-2xl p-6 border border-outline-variant/30">
           <h2 className="text-2xl font-semibold mb-4">Meus Amigos</h2>
@@ -410,6 +419,55 @@ export function PerfilPage() {
               </li>
             ))}
             {enderecos.length === 0 && <p className="text-sm text-on-surface-variant">Nenhum endereço cadastrado.</p>}
+          </ul>
+        </section>
+
+        <section className="mb-12 bg-surface-container-low rounded-2xl p-6 border border-outline-variant/30">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-semibold">Meus Cartões</h2>
+            <button type="button" onClick={() => { setCartaoEdicao({ principal: cartoes.length === 0 }); setModalCartao(true); }} className="text-sm font-bold text-primary">
+              + Novo Cartão
+            </button>
+          </div>
+          <ul className="space-y-3">
+            {cartoes.map((cartao) => (
+              <li key={cartao.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-card-cream rounded-xl gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-8 bg-surface-variant rounded flex items-center justify-center">
+                    <span className="material-symbols-outlined text-on-surface-variant">credit_card</span>
+                  </div>
+                  <div>
+                    <p className="font-bold">
+                      {cartao.apelido || "Cartão Principal"} {cartao.principal ? <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">Principal</span> : ""}
+                    </p>
+                    <p className="text-sm text-on-surface-variant">
+                      **** **** **** {cartao.numero.slice(-4)}
+                    </p>
+                    <p className="text-xs text-on-surface-variant uppercase">
+                      {cartao.nomeTitular} · Validade {cartao.validade}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <button type="button" onClick={() => { setCartaoEdicao(cartao); setModalCartao(true); }} className="text-sm font-bold text-primary">
+                    Editar
+                  </button>
+                  <button type="button" onClick={async () => {
+                    if (!confirm("Tem certeza que deseja excluir este cartão?")) return;
+                    try {
+                      await excluirCartao(cartao.id);
+                      toast("Cartão excluído", "success");
+                      listarMeusCartoes().then(setCartoes);
+                    } catch (e) {
+                      toast((e as ApiError).message, "error");
+                    }
+                  }} className="text-sm font-bold text-error">
+                    Excluir
+                  </button>
+                </div>
+              </li>
+            ))}
+            {cartoes.length === 0 && <p className="text-sm text-on-surface-variant">Nenhum cartão cadastrado.</p>}
           </ul>
         </section>
 
@@ -685,6 +743,127 @@ export function PerfilPage() {
                 className="flex-1 bg-primary text-on-primary py-3 rounded-full font-bold text-sm disabled:opacity-50"
               >
                 {processandoEndereco ? "Salvando..." : "Salvar Endereço"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {modalCartao && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 overflow-y-auto" role="dialog" aria-modal="true">
+          <div className="bg-surface-container-low rounded-2xl p-6 sm:p-8 max-w-lg w-full premium-shadow my-auto">
+            <h3 className="text-xl font-semibold mb-6">{cartaoEdicao?.id ? "Editar Cartão" : "Novo Cartão"}</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-on-surface-variant mb-1 block">Apelido do Cartão (Opcional)</label>
+                <input
+                  value={cartaoEdicao?.apelido || ""}
+                  onChange={(e) => setCartaoEdicao({ ...cartaoEdicao, apelido: e.target.value })}
+                  placeholder="Ex: Cartão Nubank"
+                  className="w-full bg-surface-container-high rounded-xl px-4 py-2"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-on-surface-variant mb-1 block">Número do Cartão *</label>
+                <input
+                  value={cartaoEdicao?.numero || ""}
+                  onChange={(e) => {
+                    let v = e.target.value.replace(/\D/g, "");
+                    v = v.replace(/(\d{4})/g, "$1 ").trim();
+                    setCartaoEdicao({ ...cartaoEdicao, numero: v.slice(0, 19) });
+                  }}
+                  placeholder="0000 0000 0000 0000"
+                  className="w-full bg-surface-container-high rounded-xl px-4 py-2 font-mono"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-on-surface-variant mb-1 block">Nome do Titular *</label>
+                <input
+                  value={cartaoEdicao?.nomeTitular || ""}
+                  onChange={(e) => setCartaoEdicao({ ...cartaoEdicao, nomeTitular: e.target.value.toUpperCase() })}
+                  placeholder="NOME COMO ESTÁ NO CARTÃO"
+                  className="w-full bg-surface-container-high rounded-xl px-4 py-2 uppercase"
+                />
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="text-xs font-bold text-on-surface-variant mb-1 block">Validade *</label>
+                  <input
+                    value={cartaoEdicao?.validade || ""}
+                    onChange={(e) => {
+                      let v = e.target.value.replace(/\D/g, "");
+                      if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2, 4);
+                      setCartaoEdicao({ ...cartaoEdicao, validade: v.slice(0, 5) });
+                    }}
+                    placeholder="MM/AA"
+                    className="w-full bg-surface-container-high rounded-xl px-4 py-2"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs font-bold text-on-surface-variant mb-1 block">CVV *</label>
+                  <input
+                    value={cartaoEdicao?.cvv || ""}
+                    onChange={(e) => setCartaoEdicao({ ...cartaoEdicao, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+                    placeholder="123"
+                    type="password"
+                    className="w-full bg-surface-container-high rounded-xl px-4 py-2 font-mono"
+                  />
+                </div>
+              </div>
+              <label className="flex items-center gap-2 mt-4 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!cartaoEdicao?.principal}
+                  onChange={(e) => setCartaoEdicao({ ...cartaoEdicao, principal: e.target.checked })}
+                  className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary"
+                />
+                <span className="text-sm font-medium">Tornar cartão principal</span>
+              </label>
+            </div>
+            
+            <div className="flex gap-3 mt-8">
+              <button
+                type="button"
+                onClick={() => setModalCartao(false)}
+                className="flex-1 py-3 rounded-full font-bold text-sm bg-surface-container-high hover:bg-surface-container-highest"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={processandoCartao}
+                onClick={async () => {
+                  if (!cartaoEdicao?.numero || !cartaoEdicao?.nomeTitular || !cartaoEdicao?.validade || !cartaoEdicao?.cvv) {
+                    toast("Preencha todos os campos obrigatórios (*)", "error");
+                    return;
+                  }
+                  if (cartaoEdicao.numero.length < 19) {
+                    toast("Número do cartão inválido", "error");
+                    return;
+                  }
+                  if (cartaoEdicao.validade.length < 5) {
+                    toast("Validade inválida", "error");
+                    return;
+                  }
+                  setProcessandoCartao(true);
+                  try {
+                    if (cartaoEdicao.id) {
+                      await atualizarCartao(cartaoEdicao.id, cartaoEdicao);
+                      toast("Cartão atualizado!", "success");
+                    } else {
+                      await criarCartao(cartaoEdicao);
+                      toast("Cartão salvo!", "success");
+                    }
+                    setModalCartao(false);
+                    listarMeusCartoes().then(setCartoes);
+                  } catch (e) {
+                    toast((e as ApiError).message, "error");
+                  } finally {
+                    setProcessandoCartao(false);
+                  }
+                }}
+                className="flex-1 bg-primary text-on-primary py-3 rounded-full font-bold text-sm disabled:opacity-50"
+              >
+                {processandoCartao ? "Salvando..." : "Salvar Cartão"}
               </button>
             </div>
           </div>

@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { SimuladorCaixaPage } from "@/components/pages/SimuladorCaixaPage";
 
 export default function Page() {
-  redirect("/registrar-compras");
+  return <SimuladorCaixaPage />;
 }

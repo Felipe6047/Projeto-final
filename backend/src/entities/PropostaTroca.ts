@@ -8,6 +8,7 @@ import {
 } from "typeorm";
 import { Usuario } from "./Usuario";
 import { CupomUsuario } from "./CupomUsuario";
+import { SalaTroca } from "./SalaTroca";
 
 export type StatusProposta = "pendente" | "aceita" | "recusada" | "cancelada";
 
@@ -27,6 +28,9 @@ export class PropostaTroca {
 
   @Column({ name: "cupom_proprietario_id", type: "bigint", unsigned: true })
   cupomProprietarioId!: string;
+
+  @Column({ name: "sala_id", type: "int", unsigned: true, nullable: true })
+  salaId!: number | null;
 
   @Column({ type: "enum", enum: ["pendente", "aceita", "recusada", "cancelada"], default: "pendente" })
   status!: StatusProposta;
@@ -58,4 +62,8 @@ export class PropostaTroca {
   @ManyToOne(() => CupomUsuario)
   @JoinColumn({ name: "cupom_proprietario_id" })
   cupomProprietario!: CupomUsuario;
+
+  @ManyToOne(() => SalaTroca, { nullable: true, onDelete: "CASCADE" })
+  @JoinColumn({ name: "sala_id" })
+  sala!: SalaTroca | null;
 }

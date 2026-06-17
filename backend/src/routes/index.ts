@@ -13,6 +13,7 @@ import missoesRoutes from "./missoes.routes";
 import campanhasRoutes from "./campanhas.routes";
 import amigosRoutes from "./amigos.routes";
 import enderecoRoutes from "./endereco.routes";
+import cartaoRoutes from "./cartao.routes";
 
 const router = Router();
 
@@ -21,6 +22,7 @@ router.get("/health", (_req, res) => {
 });
 
 router.use("/auth", authRoutes);
+router.use("/cartoes", cartaoRoutes);
 router.use("/mercado-cupons", mercadoRoutes);
 router.use("/presentes", presentesRoutes);
 router.use("/ranking", rankingRoutes);

@@ -16,11 +16,16 @@ import {
 } from "@/lib/api";
 import { useToast } from "@/context/ToastContext";
 
+const CATEGORIAS = ["Eletrônicos", "Moda", "Bem-estar", "Gastronomia", "Entretenimento", "Outros"];
+
 const empty: ProdutoAdmin = {
   nome: "",
+  descricao: "",
   preco_reais: 0,
   preco_pontos: 0,
   estoque: 0,
+  categoria: "Outros",
+  imagem_url: "",
   ativo: true,
 };
 
@@ -126,40 +131,71 @@ export function AdminProdutosPage() {
         onSubmit={salvar}
         loading={loading}
       >
-        <AdminField label="Nome">
+        <AdminField label="Nome *">
           <input
             className={adminInputClass()}
             value={form.nome}
             onChange={(e) => setForm({ ...form, nome: e.target.value })}
+            placeholder="Ex: Camiseta FRIK Premium"
           />
         </AdminField>
-        <AdminField label="Preço (R$)">
-          <input
-            type="number"
-            step="0.01"
+        <AdminField label="Descrição">
+          <textarea
+            className={adminInputClass() + " resize-none"}
+            rows={2}
+            value={form.descricao ?? ""}
+            onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+            placeholder="Breve descrição do produto..."
+          />
+        </AdminField>
+        <AdminField label="Categoria">
+          <select
             className={adminInputClass()}
-            value={form.preco_reais}
-            onChange={(e) =>
-              setForm({ ...form, preco_reais: Number(e.target.value) })
-            }
-          />
+            value={form.categoria ?? "Outros"}
+            onChange={(e) => setForm({ ...form, categoria: e.target.value })}
+          >
+            {CATEGORIAS.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
         </AdminField>
-        <AdminField label="Preço (pontos)">
-          <input
-            type="number"
-            className={adminInputClass()}
-            value={form.preco_pontos}
-            onChange={(e) =>
-              setForm({ ...form, preco_pontos: Number(e.target.value) })
-            }
-          />
-        </AdminField>
+        <div className="grid grid-cols-2 gap-4">
+          <AdminField label="Preço (R$)">
+            <input
+              type="number"
+              step="0.01"
+              className={adminInputClass()}
+              value={form.preco_reais}
+              onChange={(e) =>
+                setForm({ ...form, preco_reais: Number(e.target.value) })
+              }
+            />
+          </AdminField>
+          <AdminField label="Preço (pontos)">
+            <input
+              type="number"
+              className={adminInputClass()}
+              value={form.preco_pontos}
+              onChange={(e) =>
+                setForm({ ...form, preco_pontos: Number(e.target.value) })
+              }
+            />
+          </AdminField>
+        </div>
         <AdminField label="Estoque">
           <input
             type="number"
             className={adminInputClass()}
             value={form.estoque ?? 0}
             onChange={(e) => setForm({ ...form, estoque: Number(e.target.value) })}
+          />
+        </AdminField>
+        <AdminField label="URL da imagem (Opcional)">
+          <input
+            className={adminInputClass()}
+            value={form.imagem_url ?? ""}
+            onChange={(e) => setForm({ ...form, imagem_url: e.target.value })}
+            placeholder="https://..."
           />
         </AdminField>
       </AdminFormModal>

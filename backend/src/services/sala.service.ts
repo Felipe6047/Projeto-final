@@ -187,10 +187,8 @@ export async function listarPropostasSala(codigoConvite: string, usuarioId: numb
       "p.nome AS proprietario_nome",
       "pt.criadoEm AS criado_em",
     ])
-    .where("pt.solicitanteId IN (:...ids) OR pt.proprietarioId IN (:...ids)", {
-      ids: membroIds,
-    })
-    .andWhere("pt.status = 'pendente'")
+    .where("pt.salaId = :salaId", { salaId: sala.id })
+    .andWhere("pt.status IN (:...statuses)", { statuses: ["pendente", "aceita", "recusada"] })
     .orderBy("pt.criadoEm", "DESC")
     .getRawMany();
 }

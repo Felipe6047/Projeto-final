@@ -49,6 +49,7 @@ import { Campanha } from "./Campanha";
 import { NotaFiscal } from "./NotaFiscal";
 import { ExtratoWallet } from "./ExtratoWallet";
 import { Amizade } from "./Amizade";
+import { CartaoCredito } from "./CartaoCredito";
 
 export const entities = [
   NivelFidelidade,
@@ -76,4 +77,5 @@ export const entities = [
   NotaFiscal,
   ExtratoWallet,
   Amizade,
+  CartaoCredito,
 ];

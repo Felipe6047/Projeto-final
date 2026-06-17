@@ -18,8 +18,10 @@ import { useToast } from "@/context/ToastContext";
 
 const empty: CupomTemplateAdmin = {
   titulo: "",
+  descricao: "",
   categoria: "Geral",
   dias_validade: 30,
+  preco_pontos: 0,
   ativo: true,
 };
 
@@ -121,11 +123,21 @@ export function AdminCuponsPage() {
         onSubmit={salvar}
         loading={loading}
       >
-        <AdminField label="Título">
+        <AdminField label="Título *">
           <input
             className={adminInputClass()}
             value={form.titulo}
             onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+            placeholder="Ex: 15% de desconto na próxima compra"
+          />
+        </AdminField>
+        <AdminField label="Descrição">
+          <textarea
+            className={adminInputClass() + " resize-none"}
+            rows={2}
+            value={form.descricao ?? ""}
+            onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+            placeholder="Breve descrição do cupom..."
           />
         </AdminField>
         <AdminField label="Categoria">
@@ -133,36 +145,53 @@ export function AdminCuponsPage() {
             className={adminInputClass()}
             value={form.categoria}
             onChange={(e) => setForm({ ...form, categoria: e.target.value })}
+            placeholder="Ex: Alimentação, Transporte..."
           />
         </AdminField>
-        <AdminField label="Desconto %">
+        <AdminField label="Custo em Pontos (para resgate)">
           <input
             type="number"
             className={adminInputClass()}
-            value={form.desconto_percentual ?? ""}
+            value={form.preco_pontos ?? ""}
             onChange={(e) =>
               setForm({
                 ...form,
-                desconto_percentual: e.target.value
-                  ? Number(e.target.value)
-                  : undefined,
+                preco_pontos: e.target.value ? Number(e.target.value) : undefined,
               })
             }
+            placeholder="Ex: 500"
           />
         </AdminField>
-        <AdminField label="Desconto R$">
-          <input
-            type="number"
-            className={adminInputClass()}
-            value={form.desconto_valor ?? ""}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                desconto_valor: e.target.value ? Number(e.target.value) : undefined,
-              })
-            }
-          />
-        </AdminField>
+        <div className="grid grid-cols-2 gap-4">
+          <AdminField label="Desconto %">
+            <input
+              type="number"
+              className={adminInputClass()}
+              value={form.desconto_percentual ?? ""}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  desconto_percentual: e.target.value
+                    ? Number(e.target.value)
+                    : undefined,
+                })
+              }
+            />
+          </AdminField>
+          <AdminField label="Desconto R$">
+            <input
+              type="number"
+              className={adminInputClass()}
+              value={form.desconto_valor ?? ""}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  desconto_valor: e.target.value ? Number(e.target.value) : undefined,
+                })
+              }
+            />
+          </AdminField>
+        </div>
         <AdminField label="Validade (dias)">
           <input
             type="number"

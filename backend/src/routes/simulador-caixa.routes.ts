@@ -9,6 +9,33 @@ const router = Router();
 
 router.use(authRequired, adminRequired);
 
+// Buscar cliente por CPF (para o caixa verificar antes de cobrar)
+router.get("/cliente/:cpf", async (req, res, next) => {
+  try {
+    const cpf = req.params.cpf.replace(/\D/g, "");
+    if (cpf.length !== 11) return fail(res, "CPF inválido");
+    const { AppDataSource } = await import("../config/database");
+    const { Usuario } = await import("../entities/Usuario");
+    const usuario = await AppDataSource.getRepository(Usuario)
+      .createQueryBuilder("u")
+      .leftJoin("u.nivel", "n")
+      .select(["u.id", "u.nome", "u.email", "u.pontos"])
+      .addSelect("n.nome", "nivel_nome")
+      .where("u.cpf = :cpf", { cpf })
+      .getRawOne();
+    if (!usuario) return fail(res, "Nenhum cliente encontrado com este CPF");
+    return ok(res, {
+      id: usuario.u_id,
+      nome: usuario.u_nome,
+      email: usuario.u_email,
+      pontos: usuario.u_pontos,
+      nivel: usuario.nivel_nome ?? "Bronze",
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
 router.post("/venda", async (req, res, next) => {
   try {
     const body = z

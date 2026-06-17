@@ -84,6 +84,7 @@ router.post("/produto", async (req, res, next) => {
         mensagem: z.string().max(500).optional(),
         embrulho: z.boolean().optional(),
         enviarSurpresa: z.boolean().optional(),
+        isPessoal: z.boolean().optional(),
       })
       .parse(req.body);
 

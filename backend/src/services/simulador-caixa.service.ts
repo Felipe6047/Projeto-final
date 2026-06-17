@@ -55,6 +55,6 @@ export async function gerarNotaFiscal(valorTotal: number, cpf?: string) {
     chave,
     valorTotal,
     cpf: cpfLimpo,
-    pontosEstimados: Math.floor(valorTotal * 10),
+    pontosEstimados: Math.floor(valorTotal),
   };
 }

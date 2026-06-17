@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/context/AuthContext";
@@ -9,10 +9,19 @@ import {
   getEventoAtivo,
   getMeuNivel,
   getMissoesAtivas,
+  listarProdutos,
+  getCuponsParaResgate,
+  resgatarCupomComPontos,
+  getMeusCupons,
+  Cupom
 } from "@/lib/api";
+import { useToast } from "@/context/ToastContext";
+import Image from "next/image";
+
+const CATEGORIAS = ["Todos", "Eletrônicos", "Moda", "Acessórios", "Bem-estar", "Casa", "Livros", "Viagens"];
 
 export function DashboardPage() {
-  const { perfil } = useAuth();
+  const { perfil, refreshPerfil } = useAuth();
   const [nivel, setNivel] = useState<{
     nome: string;
     progresso_percentual: number;
@@ -31,6 +40,36 @@ export function DashboardPage() {
     }[]
   >([]);
 
+  // Store States
+  const [categoriaAtiva, setCategoriaAtiva] = useState("Todos");
+  const [produtos, setProdutos] = useState<Awaited<ReturnType<typeof listarProdutos>>["data"]>([]);
+  const [loadingProdutos, setLoadingProdutos] = useState(true);
+  
+  // Coupons State
+  const [templates, setTemplates] = useState<Awaited<ReturnType<typeof getCuponsParaResgate>>>([]);
+  const [meusCupons, setMeusCupons] = useState<Cupom[]>([]);
+  const { toast } = useToast();
+
+  const carregarStore = useCallback(async (cat: string) => {
+    setLoadingProdutos(true);
+    try {
+      const [prodRes, tempRes, meusRes] = await Promise.all([
+        listarProdutos(1, 12, cat),
+        getCuponsParaResgate(),
+        getMeusCupons()
+      ]);
+      setProdutos(prodRes.data);
+      if (cat === "Todos") {
+        setTemplates(tempRes);
+      }
+      setMeusCupons(meusRes);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingProdutos(false);
+    }
+  }, []);
+
   useEffect(() => {
     getMeuNivel().then(setNivel).catch(() => null);
     getEventoAtivo().then(setEvento).catch(() => null);
@@ -38,22 +77,99 @@ export function DashboardPage() {
     getMissoesAtivas().then(setMissoes).catch(() => []);
   }, [perfil]);
 
+  useEffect(() => {
+    carregarStore(categoriaAtiva);
+  }, [categoriaAtiva, carregarStore]);
+
   const primeiroNome = perfil?.nome?.split(" ")[0] ?? "Membro";
   const pontos = perfil?.pontos ?? nivel?.pontos ?? 0;
 
+  async function handleResgatarCupom(templateId: number, custo: number) {
+    if (pontos < custo) {
+      toast("Pontos insuficientes", "error");
+      return;
+    }
+    try {
+      const res = await resgatarCupomComPontos(templateId);
+      toast(`Cupom resgatado! Código: ${res.codigo}`, "success");
+      await carregarStore(categoriaAtiva);
+      await refreshPerfil();
+    } catch (e) {
+      toast((e as Error).message, "error");
+    }
+  }
+
   return (
     <AppShell>
-      <div className="px-4 lg:px-[40px] pb-20">
+      <div>
+        {/* HERO BANNER */}
+        <section className="relative w-full h-[300px] lg:h-[400px] bg-primary flex items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary-dark to-primary opacity-90 z-0"></div>
+          {/* Decorative Pattern */}
+          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white to-transparent z-0"></div>
+          
+          <div className="relative z-10 px-4 lg:px-[40px] w-full flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="text-white max-w-xl">
+              <span className="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider mb-4 border border-white/30">
+                Novidade
+              </span>
+              <h1 className="text-4xl lg:text-5xl font-bold mb-4 leading-tight">
+                Olá, {primeiroNome}.<br/>Sua fidelidade vale prêmios!
+              </h1>
+              <p className="text-white/80 text-lg mb-8">
+                Acumule pontos em cada compra, suba de nível e troque por produtos exclusivos ou cupons de desconto.
+              </p>
+              <div className="flex flex-wrap gap-4">
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20 min-w-[140px] flex-1">
+                  <p className="text-white/60 text-sm font-medium">Seu Saldo</p>
+                  <p className="text-2xl font-bold">{pontos.toLocaleString("pt-BR")} <span className="text-base font-normal">pts</span></p>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20 min-w-[140px] flex-1">
+                  <p className="text-white/60 text-sm font-medium">Nível Atual</p>
+                  <p className="text-2xl font-bold">{nivel?.nome ?? perfil?.nivel ?? "Bronze"}</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Quick Missions Widget in Hero */}
+            <div className="hidden lg:block w-[350px] bg-white/10 backdrop-blur-md border border-white/20 rounded-[2rem] p-6 text-white shadow-2xl">
+              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-warning">star</span> 
+                Missões Rápidas
+              </h3>
+              <div className="space-y-4 max-h-[220px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+                {missoes.map(m => {
+                  const pct = Math.min(100, Math.round((m.progresso / m.meta_valor) * 100));
+                  return (
+                    <div key={m.id} className="bg-black/20 rounded-xl p-4 border border-white/10">
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="font-semibold truncate pr-2">{m.titulo}</span>
+                        <span className="text-warning font-bold">+{m.pontos_recompensa}</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-warning rounded-full transition-all duration-1000" style={{ width: `${pct}%` }}></div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {missoes.length === 0 && <p className="text-sm text-white/60">Nenhuma missão no momento.</p>}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ALERTS (Campaigns/Events) */}
         {(evento || campanhas.length > 0) && (
-          <div className="mt-6 mb-4 space-y-2">
+          <div className="px-4 lg:px-[40px] mt-8 mb-4 space-y-2 max-w-7xl mx-auto">
             {evento && (
               <div className="px-4 py-3 rounded-xl bg-primary-container/20 border border-primary-container/40 text-sm">
                 <strong className="text-primary">{evento.titulo}</strong>
-                <span className="text-on-surface-variant"> — confira no ranking</span>
+                <span className="text-on-surface-variant"> — confira as recompensas especiais!</span>
               </div>
             )}
             {campanhas.map((c) => (
-              <div key={c.titulo} className="px-4 py-3 rounded-xl bg-secondary-container/30 border border-outline-variant/30 text-sm">
+              <div key={c.titulo} className="px-4 py-3 rounded-xl bg-secondary-container/30 border border-outline-variant/30 text-sm flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[18px]">campaign</span>
                 <strong className="text-primary">{c.titulo}</strong>
                 {c.descricao && <span className="text-on-surface-variant"> — {c.descricao}</span>}
               </div>
@@ -61,79 +177,144 @@ export function DashboardPage() {
           </div>
         )}
 
-        <section className="mt-8 mb-16">
-          <h2 className="text-[32px] font-semibold">Olá, {primeiroNome}</h2>
-          <p className="text-on-surface-variant text-lg mt-2">
-            {nivel
-              ? `Nível ${nivel.nome} — ${nivel.progresso_percentual}% até o próximo tier.`
-              : "Acumule pontos e desbloqueie recompensas exclusivas."}
-          </p>
-        </section>
-
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-16">
-          <div className="lg:col-span-8 bg-card-cream rounded-xl p-8 premium-shadow">
-            <p className="frik-label text-on-surface-variant opacity-80">Saldo disponível</p>
-            <h3 className="text-[40px] font-bold text-primary mt-2">
-              {pontos.toLocaleString("pt-BR")} pts
-            </h3>
-            <div className="mt-10 flex flex-wrap gap-4">
-              <Link href="/registrar-compras" className="bg-primary text-on-primary px-8 py-3 rounded-full font-bold">
-                Registrar compras
-              </Link>
-              <Link href="/mercado-cupons" className="bg-primary-container text-on-primary-container px-8 py-3 rounded-full font-bold">
-                Mercado de cupons
-              </Link>
-              <Link href="/ranking" className="text-primary font-bold flex items-center gap-2">
-                Ver ranking
-                <span className="material-symbols-outlined">arrow_forward</span>
+        <div className="px-4 lg:px-[40px] max-w-7xl mx-auto mt-12">
+          
+          {/* CATEGORIES */}
+          <div className="flex items-center gap-3 overflow-x-auto pb-4 mb-8 scrollbar-hide">
+            {CATEGORIAS.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCategoriaAtiva(cat)}
+                className={`px-6 py-2.5 rounded-full font-semibold whitespace-nowrap transition-all ${
+                  categoriaAtiva === cat 
+                    ? 'bg-primary text-on-primary shadow-md scale-105' 
+                    : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-variant'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+            
+            {/* C2C BANNER PUSH */}
+            <div className="ml-auto pl-6 border-l border-outline-variant/30">
+              <Link href="/salas" className="flex items-center gap-2 px-5 py-2.5 bg-[#1F2937] text-white rounded-full font-bold shadow-md hover:scale-105 transition-all whitespace-nowrap">
+                <span className="material-symbols-outlined text-[18px] text-[#FBBF24]">swap_horiz</span>
+                Feirão de Trocas
               </Link>
             </div>
           </div>
-          <div className="lg:col-span-4 bg-surface-container rounded-xl p-8 flex flex-col items-center text-center premium-shadow">
-            <p className="frik-label text-on-surface-variant">Nível atual</p>
-            <h4 className="text-2xl font-semibold mt-1">{nivel?.nome ?? perfil?.nivel ?? "Bronze"}</h4>
-            <p className="text-sm text-on-surface-variant mt-2">{nivel?.progresso_percentual ?? 0}% progresso</p>
-          </div>
-        </section>
 
-        <section>
-          <h2 className="text-2xl font-semibold mb-6">Missões ativas</h2>
-          {missoes.length === 0 ? (
-            <p className="text-on-surface-variant">Nenhuma missão ativa no momento.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {missoes.map((m) => {
-                const isConcluida = Number(m.concluida) > 0;
-                const pct = Math.min(100, Math.round((m.progresso / m.meta_valor) * 100));
-                return (
-                  <div key={m.id} className={`relative overflow-hidden rounded-xl border p-6 transition-all ${isConcluida ? 'bg-primary-container/20 border-primary/30 premium-shadow' : 'bg-surface-container-low border-outline-variant/30'}`}>
-                    {isConcluida && (
-                      <div className="absolute top-0 right-0 bg-primary text-on-primary text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider shadow-sm">
-                        Completada
+          {/* STOREFRONT: PRODUTOS FÍSICOS */}
+          <section className="mb-16">
+            <div className="flex items-end justify-between mb-8">
+              <div>
+                <h2 className="text-[32px] font-bold text-on-surface">Vitrine de Produtos</h2>
+                <p className="text-on-surface-variant text-lg">Adquira os melhores itens ou use seu cashback.</p>
+              </div>
+            </div>
+
+            {loadingProdutos ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="bg-surface-container-low rounded-[2rem] p-4 h-[350px] animate-pulse"></div>
+                ))}
+              </div>
+            ) : produtos.length === 0 ? (
+              <div className="text-center py-12 bg-surface-container-low rounded-3xl border border-outline-variant/30">
+                <span className="material-symbols-outlined text-4xl text-outline mb-2">inventory_2</span>
+                <p className="text-on-surface-variant font-medium">Nenhum produto encontrado nesta categoria.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {produtos.map(p => (
+                  <div key={p.id} className="group bg-card-cream rounded-[2rem] p-4 premium-shadow flex flex-col hover:-translate-y-2 transition-transform duration-300">
+                    <div className="relative w-full aspect-square rounded-2xl overflow-hidden mb-4 bg-white">
+                      {p.imagem_url ? (
+                        <Image src={p.imagem_url} alt={p.nome} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-surface-variant text-on-surface-variant">
+                          Sem Imagem
+                        </div>
+                      )}
+                      {p.categoria && (
+                        <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-on-surface text-[10px] font-bold px-3 py-1 rounded-full uppercase shadow-sm">
+                          {p.categoria}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 flex flex-col">
+                      <h3 className="font-bold text-lg leading-tight mb-1 line-clamp-2">{p.nome}</h3>
+                      <p className="text-sm text-on-surface-variant line-clamp-2 mb-4 flex-1">{p.descricao}</p>
+                      <div className="flex items-center justify-between mt-auto">
+                        <div className="flex flex-col">
+                          <span className="text-primary font-black text-xl">R$ {Number(p.preco_reais).toFixed(2)}</span>
+                        </div>
+                        <Link href="/presentes" className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center hover:bg-primary hover:text-on-primary transition-colors">
+                          <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
+                        </Link>
                       </div>
-                    )}
-                    <div className="flex justify-between items-start mb-2 mt-1">
-                      <h5 className={`font-semibold text-lg ${isConcluida ? 'text-primary' : 'text-on-surface'}`}>{m.titulo}</h5>
-                    </div>
-                    <p className="text-primary font-bold mb-4 text-sm flex items-center gap-1">
-                      <span className="material-symbols-outlined text-base">monetization_on</span>
-                      +{m.pontos_recompensa} pts
-                    </p>
-                    <div className="w-full h-2 bg-outline-variant/20 rounded-full overflow-hidden mb-2">
-                      <div className={`h-full rounded-full transition-all duration-1000 ${isConcluida ? 'bg-primary' : 'bg-primary/70'}`} style={{ width: `${pct}%` }} />
-                    </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-on-surface-variant font-medium">Progresso</span>
-                      <span className={isConcluida ? "text-primary font-bold" : "text-on-surface-variant font-bold"}>
-                        {m.progresso} / {m.meta_valor}
-                      </span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* STOREFRONT: CUPONS OFICIAIS */}
+          {categoriaAtiva === "Todos" && templates.length > 0 && (
+            <section className="mb-16">
+              <div className="flex items-end justify-between mb-8">
+                <div>
+                  <h2 className="text-[32px] font-bold text-on-surface">Cupons de Desconto</h2>
+                  <p className="text-on-surface-variant text-lg">Compre vouchers oficiais com seus pontos.</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {templates.map(t => {
+                  const qtdComprada = meusCupons.filter(m => m.template_id === t.id).length;
+                  const limiteUsuario = t.limite_por_usuario != null && qtdComprada >= t.limite_por_usuario;
+                  const esgotado = t.limite_total != null && Number(t.qtd_vendida) >= t.limite_total;
+                  const disable = limiteUsuario || esgotado;
+                  let label = `Resgatar por ${t.preco_pontos} pts`;
+                  if (limiteUsuario) label = "Seu limite atingido";
+                  else if (esgotado) label = "Esgotado";
+
+                  return (
+                    <div key={t.id} className={`bg-surface-container rounded-[2rem] p-6 border transition-all ${disable ? 'border-outline-variant/30 opacity-70' : 'border-outline-variant/50 hover:border-primary/50 premium-shadow'}`}>
+                      <div className="flex gap-4">
+                        <div className="w-20 h-20 rounded-xl bg-surface-variant shrink-0 overflow-hidden relative border border-outline-variant/20">
+                          <span className="material-symbols-outlined w-full h-full flex items-center justify-center text-3xl opacity-50">local_offer</span>
+                        </div>
+                        <div className="flex-1">
+                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-secondary-container text-on-secondary-container uppercase mb-1">
+                            {t.categoria || 'Geral'}
+                          </span>
+                          <h4 className="font-bold text-lg leading-tight mb-1">{t.titulo}</h4>
+                          <p className="text-xs text-on-surface-variant line-clamp-2">{t.descricao}</p>
+                        </div>
+                      </div>
+                      <div className="mt-6 pt-4 border-t border-outline-variant/20 flex flex-col gap-2">
+                        {t.limite_por_usuario !== null && (
+                          <p className="text-[11px] font-bold text-secondary text-right">
+                            Limite: {qtdComprada}/{t.limite_por_usuario} por usuário
+                          </p>
+                        )}
+                        <button
+                          onClick={() => handleResgatarCupom(t.id, t.preco_pontos)}
+                          disabled={disable}
+                          className="w-full py-3 rounded-xl font-bold bg-primary text-on-primary hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {label}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
           )}
-        </section>
+
+        </div>
       </div>
     </AppShell>
   );

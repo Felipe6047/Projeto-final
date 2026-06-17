@@ -5,12 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
 const nav = [
-  { href: "/", label: "Início", icon: "dashboard" },
-  { href: "/mercado-cupons", label: "Mercado de Cupons", icon: "shopping_bag" },
-  { href: "/presentes", label: "Produtos", icon: "redeem" },
-  { href: "/ranking", label: "Ranking", icon: "military_tech" },
-  { href: "/salas", label: "Salas de troca", icon: "groups" },
-  { href: "/perfil", label: "Perfil", icon: "person" },
+  { href: "/", label: "Loja & Início", icon: "storefront" },
+  { href: "/mercado-cupons", label: "Meus Cupons", icon: "local_activity" },
+  { href: "/salas", label: "Feirão de Trocas", icon: "swap_horiz" },
+  { href: "/perfil", label: "Meu Perfil", icon: "person" },
 ];
 
 export function Sidebar() {
@@ -55,17 +53,30 @@ export function Sidebar() {
           );
         })}
         {isAdmin && (
-          <Link
-            href="/admin"
-            className={`flex items-center gap-4 py-3 px-4 rounded-lg transition-colors ${
-              pathname.startsWith("/admin")
-                ? "text-primary font-bold border-r-4 border-primary bg-surface-container"
-                : "text-on-surface-variant hover:bg-surface-container"
-            }`}
-          >
-            <span className="material-symbols-outlined">admin_panel_settings</span>
-            <span className="text-base">Painel Admin (PDV)</span>
-          </Link>
+          <>
+            <Link
+              href="/simulador-caixa"
+              className={`flex items-center gap-4 py-3 px-4 rounded-lg transition-colors ${
+                pathname.startsWith("/simulador-caixa")
+                  ? "text-primary font-bold border-r-4 border-primary bg-surface-container"
+                  : "text-on-surface-variant hover:bg-surface-container"
+              }`}
+            >
+              <span className="material-symbols-outlined">point_of_sale</span>
+              <span className="text-base">Terminal PDV</span>
+            </Link>
+            <Link
+              href="/admin"
+              className={`flex items-center gap-4 py-3 px-4 rounded-lg transition-colors ${
+                pathname.startsWith("/admin")
+                  ? "text-primary font-bold border-r-4 border-primary bg-surface-container"
+                  : "text-on-surface-variant hover:bg-surface-container"
+              }`}
+            >
+              <span className="material-symbols-outlined">admin_panel_settings</span>
+              <span className="text-base">Painel Admin</span>
+            </Link>
+          </>
         )}
       </nav>
       <button

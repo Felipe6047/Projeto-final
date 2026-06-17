@@ -10,6 +10,7 @@ import {
 } from "typeorm";
 import { NivelFidelidade } from "./NivelFidelidade";
 import { Endereco } from "./Endereco";
+import { CartaoCredito } from "./CartaoCredito";
 import { CupomUsuario } from "./CupomUsuario";
 
 export type PapelUsuario = "cliente" | "admin";
@@ -85,6 +86,9 @@ export class Usuario {
 
   @OneToMany(() => Endereco, (e) => e.usuario)
   enderecos!: Endereco[];
+
+  @OneToMany(() => CartaoCredito, (c) => c.usuario)
+  cartoes!: CartaoCredito[];
 
   @OneToMany(() => CupomUsuario, (c) => c.usuario)
   cupons!: CupomUsuario[];

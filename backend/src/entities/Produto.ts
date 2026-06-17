@@ -11,6 +11,9 @@ export class Produto {
   @Column({ type: "text", nullable: true })
   descricao!: string | null;
 
+  @Column({ length: 100, default: "Outros" })
+  categoria!: string;
+
   @Column({ name: "preco_reais", type: "decimal", precision: 10, scale: 2 })
   precoReais!: string;
 

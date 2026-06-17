@@ -113,6 +113,7 @@ export async function criarPedidoPresente(data: {
   mensagem?: string;
   embrulho?: boolean;
   enviarSurpresa?: boolean;
+  isPessoal?: boolean;
 }) {
   const nivel = await AppDataSource.getRepository(Usuario)
     .createQueryBuilder("u")
@@ -127,16 +128,19 @@ export async function criarPedidoPresente(data: {
       valor_max_presente: string | null;
     }>();
 
-  if (!nivel?.pode_presentear_produto) {
-    return { erro: "Seu nível não permite presentear produtos físicos" };
-  }
-  if (
-    nivel.valor_max_presente !== null &&
-    data.valorReais > Number(nivel.valor_max_presente)
-  ) {
-    return {
-      erro: `Valor máximo para presente no seu nível: R$ ${nivel.valor_max_presente}`,
-    };
+  // Validações de nível só se aplicam a PRESENTES (não para compras pessoais)
+  if (!data.isPessoal) {
+    if (!nivel?.pode_presentear_produto) {
+      return { erro: "Seu nível não permite presentear produtos físicos" };
+    }
+    if (
+      nivel.valor_max_presente !== null &&
+      data.valorReais > Number(nivel.valor_max_presente)
+    ) {
+      return {
+        erro: `Valor máximo para presente no seu nível: R$ ${nivel.valor_max_presente}`,
+      };
+    }
   }
 
   const walletUsado = data.walletUsado ?? 0;

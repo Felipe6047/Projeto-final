@@ -52,7 +52,6 @@ export function TopHeader({
         </div>
       </div>
       <div className="flex items-center gap-3 lg:gap-5">
-        {/* Gamificação: Streak (Ofensiva Diária) */}
         <div 
           className="hidden sm:flex items-center gap-1 bg-surface-container-high py-1.5 px-3 rounded-full border border-primary/20 shadow-inner cursor-pointer hover:bg-surface-variant transition-colors" 
           title={`Você acessou a plataforma ${perfil?.dias_ofensiva ?? 0} dias seguidos!`}
@@ -60,6 +59,15 @@ export function TopHeader({
           <span className="material-symbols-outlined text-primary text-[20px] animate-pulse">local_fire_department</span>
           <span className="font-bold text-sm text-primary">{perfil?.dias_ofensiva ?? 0}</span>
         </div>
+
+        {/* Gamificação: Ranking */}
+        <Link 
+          href="/ranking"
+          className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-surface-container-high border border-outline-variant/30 hover:bg-surface-variant hover:border-primary/50 transition-all text-on-surface-variant hover:text-primary group"
+          title="Ver Ranking Global"
+        >
+          <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">emoji_events</span>
+        </Link>
         
         <ThemeToggle />
         <button

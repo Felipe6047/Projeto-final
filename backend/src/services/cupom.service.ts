@@ -4,6 +4,7 @@ import { env } from "../config/env";
 import { CupomUsuario } from "../entities/CupomUsuario";
 import { CupomTemplate } from "../entities/CupomTemplate";
 import { PropostaTroca } from "../entities/PropostaTroca";
+import { SalaTroca } from "../entities/SalaTroca";
 import { Usuario } from "../entities/Usuario";
 import { UsuarioTrocaMes } from "../entities/UsuarioTrocaMes";
 import { HistoricoPontos } from "../entities/HistoricoPontos";
@@ -353,7 +354,8 @@ export async function responderTroca(
 export async function proporTrocaSala(
   solicitanteId: number,
   cupomOfertadoId: number,
-  cupomSolicitadoId: number
+  cupomSolicitadoId: number,
+  codigoSala?: string
 ) {
   return AppDataSource.transaction(async (manager) => {
     const cupomRepo = manager.getRepository(CupomUsuario);
@@ -374,11 +376,20 @@ export async function proporTrocaSala(
     });
     if (!meuCupom) return { erro: "Seu cupom não é válido" };
 
+    let salaId: number | null = null;
+    if (codigoSala) {
+      const sala = await manager.getRepository(SalaTroca).findOne({
+        where: { codigoConvite: codigoSala.toUpperCase() },
+      });
+      if (sala) salaId = sala.id;
+    }
+
     const proposta = await manager.getRepository(PropostaTroca).save({
       solicitanteId,
       proprietarioId: cupomAlvo.usuarioId,
       cupomSolicitanteId: String(cupomOfertadoId),
       cupomProprietarioId: String(cupomSolicitadoId),
+      salaId,
       taxaPontos: 0,
       taxaAceita: false,
       status: "pendente",

@@ -121,6 +121,16 @@ export async function processarNotaFiscal(chave: string, vincularCpf?: boolean) 
   });
 }
 
+export async function simuladorBuscarClientePorCpf(cpf: string) {
+  return api<{
+    id: number;
+    nome: string;
+    email: string;
+    pontos: number;
+    nivel: string;
+  }>(`/simulador-caixa/cliente/${cpf.replace(/\D/g, "")}`);
+}
+
 export async function simuladorVendaPorCpf(cpf: string, valorTotal: number) {
   return api<{
     usuarioId: number;
@@ -426,7 +436,17 @@ export interface Endereco {
   bairro: string;
   cidade: string;
   uf: string;
-  principal: boolean | number;
+  principal: boolean;
+}
+
+export interface CartaoCredito {
+  id: number;
+  apelido: string | null;
+  numero: string;
+  nomeTitular: string;
+  validade: string;
+  cvv: string;
+  principal: boolean;
 }
 
 export async function listarMeusEnderecos() {
@@ -449,6 +469,28 @@ export async function atualizarEndereco(id: number, dados: Partial<Endereco>) {
 
 export async function excluirEndereco(id: number) {
   return api<{ ok: boolean }>(`/enderecos/${id}`, { method: "DELETE" });
+}
+
+export async function listarMeusCartoes() {
+  return api<CartaoCredito[]>("/cartoes");
+}
+
+export async function criarCartao(dados: Partial<CartaoCredito>) {
+  return api<CartaoCredito>("/cartoes", {
+    method: "POST",
+    body: JSON.stringify(dados),
+  });
+}
+
+export async function atualizarCartao(id: number, dados: Partial<CartaoCredito>) {
+  return api<CartaoCredito>(`/cartoes/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(dados),
+  });
+}
+
+export async function excluirCartao(id: number) {
+  return api<{ ok: boolean }>(`/cartoes/${id}`, { method: "DELETE" });
 }
 
 export async function getRankingMensal(limite = 10) {
@@ -622,22 +664,27 @@ export async function solicitarTroca(body: {
   });
 }
 
-export async function listarProdutos(page = 1, limit = 10) {
+export async function listarProdutos(page = 1, limit = 10, categoria?: string) {
+  let url = `/produtos?page=${page}&limit=${limit}`;
+  if (categoria && categoria !== "Todos") {
+    url += `&categoria=${encodeURIComponent(categoria)}`;
+  }
   return api<{
     data: {
       id: number;
       nome: string;
-      descricao: string;
-      preco_reais: string;
+      descricao: string | null;
+      preco_reais: string | number;
       preco_pontos: number;
       estoque: number;
       imagem_url: string | null;
+      categoria?: string;
     }[];
     total: number;
     page: number;
     limit: number;
     totalPages: number;
-  }>(`/produtos?page=${page}&limit=${limit}`);
+  }>(url);
 }
 
 export async function presentearCupom(body: {
@@ -675,6 +722,7 @@ export async function criarPedidoPresente(body: {
   mensagem?: string;
   embrulho?: boolean;
   enviarSurpresa?: boolean;
+  isPessoal?: boolean;
 }) {
   return api<{
     pedidoId: number;
@@ -762,6 +810,7 @@ export interface CupomTemplateAdmin {
   ativo?: boolean | number;
   limite_por_usuario?: number | null;
   limite_total?: number | null;
+  preco_pontos?: number;
 }
 
 export async function adminListCupomTemplates() {
@@ -799,6 +848,8 @@ export interface ProdutoAdmin {
   preco_pontos: number;
   estoque?: number;
   ativo?: boolean | number;
+  categoria?: string;
+  imagem_url?: string;
 }
 
 export async function adminListProdutos() {

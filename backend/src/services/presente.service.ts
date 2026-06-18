@@ -181,6 +181,14 @@ export async function criarPedidoPresente(data: {
         where: { id: item.produtoId, ativo: true },
       });
       if (!prod) throw new Error("Produto inválido");
+      if (prod.estoque < item.quantidade) {
+        throw new Error(`Estoque insuficiente para "${prod.nome}" (disponível: ${prod.estoque})`);
+      }
+
+      // Decrementa estoque
+      await manager
+        .getRepository(Produto)
+        .decrement({ id: item.produtoId }, "estoque", item.quantidade);
 
       await manager.getRepository(PedidoPresenteItem).save({
         pedidoId: pedido.id,

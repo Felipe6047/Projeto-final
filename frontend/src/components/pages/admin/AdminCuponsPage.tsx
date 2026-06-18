@@ -16,6 +16,8 @@ import {
 } from "@/lib/api";
 import { useToast } from "@/context/ToastContext";
 
+const CATEGORIAS = ["Eletrônicos", "Moda", "Bem-estar", "Gastronomia", "Entretenimento", "Acessórios", "Games", "Geral", "Frete", "Outros"];
+
 const empty: CupomTemplateAdmin = {
   titulo: "",
   descricao: "",
@@ -141,12 +143,15 @@ export function AdminCuponsPage() {
           />
         </AdminField>
         <AdminField label="Categoria">
-          <input
+          <select
             className={adminInputClass()}
-            value={form.categoria}
+            value={form.categoria || "Geral"}
             onChange={(e) => setForm({ ...form, categoria: e.target.value })}
-            placeholder="Ex: Alimentação, Transporte..."
-          />
+          >
+            {CATEGORIAS.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
         </AdminField>
         <AdminField label="Custo em Pontos (para resgate)">
           <input

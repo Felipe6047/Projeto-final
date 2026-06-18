@@ -1,6 +1,8 @@
 "use client";
+import { QRCodeSVG } from "qrcode.react";
 
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { useToast } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
@@ -38,6 +40,9 @@ const ETAPAS = ["Produtos", "Carrinho", "Destinatário", "Pagamento", "Resumo"] 
 
 
 export function PresentesPage() {
+  const searchParams = useSearchParams();
+  const produtoUrlId = searchParams.get("produto");
+
   const { refreshPerfil, perfil } = useAuth();
   const { toast } = useToast();
   
@@ -52,7 +57,7 @@ export function PresentesPage() {
     { id: string; destinatario_nome: string; status: string; valor_reais: string; criado_em?: string }[]
   >([]);
   const [amigos, setAmigos] = useState<
-    { id: number; nome: string; nivel: string; tem_endereco: number }[]
+    { id: number; nome: string; email: string; nivel: string; tem_endereco: number }[]
   >([]);
 
   const [carrinho, setCarrinho] = useState<{ produto: Produto; qtd: number }[]>([]);
@@ -134,6 +139,18 @@ export function PresentesPage() {
     carregarProdutos(page);
   }, [page, carregarProdutos]);
 
+  // Handle URL product pre-selection
+  useEffect(() => {
+    if (produtoUrlId && produtos.length > 0) {
+      const pid = Number(produtoUrlId);
+      const prod = produtos.find(p => p.id === pid);
+      if (prod && carrinho.length === 0) {
+        setCarrinho([{ produto: prod, qtd: 1 }]);
+        setEtapa(1); // Go straight to cart
+      }
+    }
+  }, [produtoUrlId, produtos]); // removing carrinho from deps to avoid loop
+
   useEffect(() => {
     listarPedidosPresente().then(setPedidos).catch(() => []);
     getMeusAmigos().then(setAmigos).catch(() => []);
@@ -201,11 +218,18 @@ export function PresentesPage() {
       setSugestoes([]);
       return;
     }
-    const t = setTimeout(() => {
-      buscarUsuarios(buscaDest).then(setSugestoes).catch(() => setSugestoes([]));
-    }, 300);
-    return () => clearTimeout(t);
-  }, [buscaDest]);
+    const q = buscaDest.toLowerCase();
+    const filtrados = amigos.filter(a => 
+      a.nome.toLowerCase().includes(q) || 
+      (a.email && a.email.toLowerCase().includes(q))
+    ).map(a => ({
+      id: a.id,
+      nome: a.nome,
+      email: a.email,
+      nivel: a.nivel
+    }));
+    setSugestoes(filtrados);
+  }, [buscaDest, amigos]);
 
   useEffect(() => {
     const limpo = cep.replace(/\D/g, "");
@@ -996,10 +1020,13 @@ export function PresentesPage() {
           <div className="bg-surface-container-low rounded-3xl p-8 max-w-sm w-full text-center premium-shadow">
             <h3 className="text-xl font-semibold mb-2">Pagamento PIX</h3>
             <p className="text-sm text-on-surface-variant mb-4">Valor: R$ {pixModal.valorPix.toFixed(2)}</p>
-            <div className="w-48 h-48 mx-auto bg-white rounded-xl flex items-center justify-center mb-4 border grid grid-cols-8 gap-0.5 p-2">
-              {Array.from({ length: 64 }).map((_, i) => (
-                <div key={i} className={`aspect-square ${i % 3 === 0 ? "bg-black" : "bg-white"}`} />
-              ))}
+            <div className="w-48 h-48 mx-auto bg-white rounded-xl flex items-center justify-center mb-4 p-2">
+              <QRCodeSVG 
+                value={`00020126360014br.gov.bcb.pix0114+5511999990000520400005303986540${pixModal.valorPix.toFixed(2).replace(".","")}5802BR5910Frik Admin6009Sao Paulo62070503***6304`} 
+                size={160} 
+                level="M" 
+                includeMargin={true}
+              />
             </div>
             <p className="text-xs text-on-surface-variant mb-6">QR Code simulado — confirme após &quot;pagar&quot;</p>
             <button type="button" disabled={enviando} onClick={confirmarPix} className="w-full bg-primary text-on-primary py-3 rounded-full font-bold">

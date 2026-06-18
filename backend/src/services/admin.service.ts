@@ -164,9 +164,25 @@ export async function excluirCampanha(id: number) {
 
 // --- Cupom templates ---
 export async function listarCupomTemplates() {
-  return AppDataSource.getRepository(CupomTemplate).find({
+  const cupons = await AppDataSource.getRepository(CupomTemplate).find({
     order: { titulo: "ASC" },
   });
+  return cupons.map((c) => ({
+    id: c.id,
+    titulo: c.titulo,
+    descricao: c.descricao,
+    categoria: c.categoria,
+    desconto_percentual: c.descontoPercentual ? Number(c.descontoPercentual) : undefined,
+    desconto_valor: c.descontoValor ? Number(c.descontoValor) : undefined,
+    valor_minimo_compra: c.valorMinimoCompra ? Number(c.valorMinimoCompra) : undefined,
+    imagem_url: c.imagemUrl,
+    dias_validade: c.diasValidade,
+    preco_pontos: c.precoPontos,
+    ativo: c.ativo,
+    limite_por_usuario: c.limitePorUsuario,
+    limite_total: c.limiteTotal,
+    criado_em: c.criadoEm,
+  }));
 }
 
 export async function criarCupomTemplate(data: {
@@ -220,7 +236,18 @@ export async function excluirCupomTemplate(id: number) {
 
 // --- Produtos ---
 export async function listarProdutosAdmin() {
-  return AppDataSource.getRepository(Produto).find({ order: { nome: "ASC" } });
+  const produtos = await AppDataSource.getRepository(Produto).find({ order: { nome: "ASC" } });
+  return produtos.map((p) => ({
+    id: p.id,
+    nome: p.nome,
+    descricao: p.descricao,
+    categoria: p.categoria,
+    preco_reais: Number(p.precoReais),
+    preco_pontos: p.precoPontos,
+    estoque: p.estoque,
+    imagem_url: p.imagemUrl,
+    ativo: p.ativo,
+  }));
 }
 
 export async function criarProduto(data: {
@@ -256,7 +283,18 @@ export async function excluirProduto(id: number) {
 
 // --- Missões ---
 export async function listarMissoes() {
-  return AppDataSource.getRepository(Missao).find({ order: { id: "DESC" } });
+  const missoes = await AppDataSource.getRepository(Missao).find({ order: { id: "DESC" } });
+  return missoes.map((m) => ({
+    id: m.id,
+    titulo: m.titulo,
+    descricao: m.descricao,
+    pontos_recompensa: m.pontosRecompensa,
+    meta_valor: m.metaValor,
+    tipo_meta: m.tipoMeta,
+    ativa: m.ativa,
+    inicio_em: m.inicioEm,
+    fim_em: m.fimEm,
+  }));
 }
 
 export async function criarMissao(data: {
@@ -296,9 +334,18 @@ export async function excluirMissao(id: number) {
 
 // --- Eventos sazonais ---
 export async function listarEventos() {
-  return AppDataSource.getRepository(EventoSazonal).find({
+  const eventos = await AppDataSource.getRepository(EventoSazonal).find({
     order: { inicioEm: "DESC" },
   });
+  return eventos.map((e) => ({
+    id: e.id,
+    titulo: e.titulo,
+    descricao: e.descricao,
+    trocas_extras: e.trocasExtras,
+    inicio_em: e.inicioEm,
+    fim_em: e.fimEm,
+    ativo: e.ativo,
+  }));
 }
 
 export async function criarEvento(data: {

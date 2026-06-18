@@ -87,6 +87,8 @@ export function PerfilPage() {
   const [cartaoEdicao, setCartaoEdicao] = useState<Partial<CartaoCredito> | null>(null);
   const [processandoCartao, setProcessandoCartao] = useState(false);
 
+  const [modalNiveis, setModalNiveis] = useState(false);
+
   useEffect(() => {
     Promise.all([
       getPerfil(),
@@ -238,9 +240,15 @@ export function PerfilPage() {
                   <dd className="font-medium">{String(perfil.cpf)}</dd>
                 </div>
               )}
-              <div className="flex justify-between gap-4">
+              <div className="flex justify-between gap-4 items-center">
                 <dt className="text-on-surface-variant">Nível</dt>
-                <dd className="font-medium capitalize">{perfil.nivel}</dd>
+                <dd className="font-medium capitalize flex items-center gap-2">
+                  {perfil.nivel}
+                  <button type="button" onClick={() => setModalNiveis(true)} className="text-xs text-primary bg-primary/10 px-2 py-1 rounded-full hover:bg-primary/20 transition-colors flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">info</span>
+                    Benefícios
+                  </button>
+                </dd>
               </div>
             </dl>
           </div>
@@ -864,6 +872,67 @@ export function PerfilPage() {
                 className="flex-1 bg-primary text-on-primary py-3 rounded-full font-bold text-sm disabled:opacity-50"
               >
                 {processandoCartao ? "Salvando..." : "Salvar Cartão"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Benefícios dos Níveis */}
+      {modalNiveis && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setModalNiveis(false)}>
+          <div className="bg-surface-container-low w-full max-w-2xl rounded-3xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setModalNiveis(false)}
+              className="absolute top-6 right-6 p-2 rounded-full hover:bg-surface-container-high transition-colors"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            <h2 className="text-2xl font-bold mb-6">Benefícios por Nível</h2>
+            <div className="space-y-4">
+              <div className="p-4 bg-surface-container-high rounded-xl border border-outline-variant/20">
+                <h3 className="font-bold text-lg text-primary flex items-center gap-2">🥉 Bronze <span className="text-xs font-normal text-on-surface-variant bg-surface-container-highest px-2 py-0.5 rounded-full">0+ pts</span></h3>
+                <ul className="text-sm mt-2 space-y-1 text-on-surface-variant">
+                  <li>• 1 troca por mês</li>
+                  <li>• Trocas apenas com outros usuários Bronze</li>
+                  <li>• Sem envio de presentes (cupons ou físicos)</li>
+                </ul>
+              </div>
+              <div className="p-4 bg-surface-container-high rounded-xl border border-outline-variant/20">
+                <h3 className="font-bold text-lg text-primary flex items-center gap-2">🥈 Prata <span className="text-xs font-normal text-on-surface-variant bg-surface-container-highest px-2 py-0.5 rounded-full">500+ pts</span></h3>
+                <ul className="text-sm mt-2 space-y-1 text-on-surface-variant">
+                  <li>• Até 3 trocas por mês</li>
+                  <li>• Trocas liberadas com todos os níveis</li>
+                  <li>• Pode enviar presentes de cupons</li>
+                </ul>
+              </div>
+              <div className="p-4 bg-surface-container-high rounded-xl border border-outline-variant/20">
+                <h3 className="font-bold text-lg text-primary flex items-center gap-2">🥇 Ouro <span className="text-xs font-normal text-on-surface-variant bg-surface-container-highest px-2 py-0.5 rounded-full">2.000+ pts</span></h3>
+                <ul className="text-sm mt-2 space-y-1 text-on-surface-variant">
+                  <li>• Até 10 trocas por mês</li>
+                  <li>• Trocas liberadas com todos os níveis</li>
+                  <li>• Pode enviar presentes de cupons e físicos (até R$ 100)</li>
+                </ul>
+              </div>
+              <div className="p-4 bg-surface-container-high rounded-xl border border-outline-variant/20">
+                <h3 className="font-bold text-lg text-primary flex items-center gap-2">💎 Platina <span className="text-xs font-normal text-on-surface-variant bg-surface-container-highest px-2 py-0.5 rounded-full">5.000+ pts</span></h3>
+                <ul className="text-sm mt-2 space-y-1 text-on-surface-variant">
+                  <li>• Trocas Ilimitadas</li>
+                  <li>• Pode enviar presentes físicos sem limite de valor</li>
+                  <li>• Pode criar Salas de Troca privadas</li>
+                </ul>
+              </div>
+              <div className="p-4 bg-surface-container-high rounded-xl border border-outline-variant/20">
+                <h3 className="font-bold text-lg text-primary flex items-center gap-2">👑 Diamante <span className="text-xs font-normal text-on-surface-variant bg-surface-container-highest px-2 py-0.5 rounded-full">10.000+ pts</span></h3>
+                <ul className="text-sm mt-2 space-y-1 text-on-surface-variant">
+                  <li>• Todos os benefícios do Platina</li>
+                  <li>• Acesso ao topo da elite do programa Frik</li>
+                </ul>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button onClick={() => setModalNiveis(false)} className="px-6 py-2 bg-primary text-on-primary rounded-xl font-bold hover:bg-primary/90">
+                Entendi
               </button>
             </div>
           </div>

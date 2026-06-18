@@ -16,7 +16,7 @@ import {
 } from "@/lib/api";
 import { useToast } from "@/context/ToastContext";
 
-const CATEGORIAS = ["Eletrônicos", "Moda", "Bem-estar", "Gastronomia", "Entretenimento", "Outros"];
+const CATEGORIAS = ["Eletrônicos", "Moda", "Bem-estar", "Gastronomia", "Entretenimento", "Acessórios", "Games", "Geral", "Frete", "Outros"];
 
 const empty: ProdutoAdmin = {
   nome: "",
@@ -92,8 +92,7 @@ export function AdminProdutosPage() {
                 )}
               </p>
               <p className="text-sm text-on-surface-variant">
-                R$ {Number(p.preco_reais).toFixed(2)} · {p.preco_pontos} pts · Estoque{" "}
-                {p.estoque}
+                R$ {Number(p.preco_reais).toFixed(2)} · Estoque {p.estoque}
               </p>
             </div>
             <div className="flex gap-2">
@@ -171,25 +170,15 @@ export function AdminProdutosPage() {
               }
             />
           </AdminField>
-          <AdminField label="Preço (pontos)">
+          <AdminField label="Estoque">
             <input
               type="number"
               className={adminInputClass()}
-              value={form.preco_pontos}
-              onChange={(e) =>
-                setForm({ ...form, preco_pontos: Number(e.target.value) })
-              }
+              value={form.estoque ?? 0}
+              onChange={(e) => setForm({ ...form, estoque: Number(e.target.value) })}
             />
           </AdminField>
         </div>
-        <AdminField label="Estoque">
-          <input
-            type="number"
-            className={adminInputClass()}
-            value={form.estoque ?? 0}
-            onChange={(e) => setForm({ ...form, estoque: Number(e.target.value) })}
-          />
-        </AdminField>
         <AdminField label="URL da imagem (Opcional)">
           <input
             className={adminInputClass()}

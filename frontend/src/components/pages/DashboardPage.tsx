@@ -18,7 +18,7 @@ import {
 import { useToast } from "@/context/ToastContext";
 import Image from "next/image";
 
-const CATEGORIAS = ["Todos", "Eletrônicos", "Moda", "Acessórios", "Bem-estar", "Casa", "Livros", "Viagens"];
+const CATEGORIAS = ["Todos", "Eletrônicos", "Moda", "Acessórios", "Bem-estar", "Gastronomia", "Games", "Entretenimento"];
 
 export function DashboardPage() {
   const { perfil, refreshPerfil } = useAuth();
@@ -194,23 +194,19 @@ export function DashboardPage() {
                 {cat}
               </button>
             ))}
-            
-            {/* C2C BANNER PUSH */}
-            <div className="ml-auto pl-6 border-l border-outline-variant/30">
-              <Link href="/salas" className="flex items-center gap-2 px-5 py-2.5 bg-[#1F2937] text-white rounded-full font-bold shadow-md hover:scale-105 transition-all whitespace-nowrap">
-                <span className="material-symbols-outlined text-[18px] text-[#FBBF24]">swap_horiz</span>
-                Feirão de Trocas
-              </Link>
-            </div>
           </div>
 
           {/* STOREFRONT: PRODUTOS FÍSICOS */}
           <section className="mb-16">
-            <div className="flex items-end justify-between mb-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
               <div>
                 <h2 className="text-[32px] font-bold text-on-surface">Vitrine de Produtos</h2>
                 <p className="text-on-surface-variant text-lg">Adquira os melhores itens ou use seu cashback.</p>
               </div>
+              <Link href="/salas" className="inline-flex items-center gap-2 px-6 py-3 bg-[#1F2937] text-white rounded-full font-bold shadow-md hover:scale-105 transition-transform whitespace-nowrap">
+                <span className="material-symbols-outlined text-[18px] text-[#FBBF24]">swap_horiz</span>
+                Acessar Feirão de Trocas
+              </Link>
             </div>
 
             {loadingProdutos ? (
@@ -249,7 +245,11 @@ export function DashboardPage() {
                         <div className="flex flex-col">
                           <span className="text-primary font-black text-xl">R$ {Number(p.preco_reais).toFixed(2)}</span>
                         </div>
-                        <Link href="/presentes" className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center hover:bg-primary hover:text-on-primary transition-colors">
+                        <Link
+                          href={`/presentes?produto=${p.id}`}
+                          className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center hover:bg-primary hover:text-on-primary transition-colors"
+                          title="Comprar"
+                        >
                           <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
                         </Link>
                       </div>

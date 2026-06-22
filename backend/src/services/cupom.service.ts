@@ -342,6 +342,26 @@ export async function responderTroca(
       "troca",
       manager
     );
+
+    // Bônus de 10 pontos pela troca bem sucedida
+    const addPts = async (uid: number) => {
+      await manager.getRepository(Usuario).increment({ id: uid }, "pontos", 10);
+      const userAtualizado = await manager.getRepository(Usuario).findOneBy({ id: uid });
+      if (userAtualizado) {
+        await manager.getRepository(HistoricoPontos).save({
+          usuarioId: uid,
+          valor: 10,
+          saldoApos: userAtualizado.pontos,
+          tipo: "missao",
+          referenciaTipo: "troca",
+          referenciaId: String(p.id),
+          descricao: "Bônus por troca de cupom concluída",
+        });
+      }
+    };
+    await addPts(p.solicitanteId);
+    await addPts(p.proprietarioId);
+
     await incrementarMissao(p.solicitanteId, "trocas", 1, manager);
     await incrementarMissao(p.proprietarioId, "trocas", 1, manager);
     await verificarConquistas(p.solicitanteId, manager);

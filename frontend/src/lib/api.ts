@@ -43,9 +43,14 @@ export async function api<T>(
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const msg =
+    let msg =
       (data as { erro?: string }).erro ?? `Erro ${res.status} na requisição`;
-    throw new ApiError(msg, res.status, (data as { detalhes?: unknown }).detalhes);
+    const detalhes = (data as { detalhes?: unknown }).detalhes;
+    if (detalhes && typeof detalhes === "object") {
+      const detailsMsg = Object.values(detalhes).flat().join(", ");
+      if (detailsMsg) msg += `: ${detailsMsg}`;
+    }
+    throw new ApiError(msg, res.status, detalhes);
   }
   return data as T;
 }

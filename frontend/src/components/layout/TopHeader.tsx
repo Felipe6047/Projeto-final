@@ -19,9 +19,10 @@ export function TopHeader({
   placeholder = "Buscar recompensas ou missões...",
   onSearch,
 }: TopHeaderProps) {
-  const { perfil } = useAuth();
+  const { perfil, isAdmin, logout } = useAuth();
   const [notifOpen, setNotifOpen] = useState(false);
   const [naoLidas, setNaoLidas] = useState(0);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     getNotificacoes()
@@ -105,6 +106,7 @@ export function TopHeader({
           </div>
         </Link>
       </div>
+
     </header>
   );
 }

@@ -146,7 +146,9 @@ export function PresentesPage() {
       const prod = produtos.find(p => p.id === pid);
       if (prod && carrinho.length === 0) {
         setCarrinho([{ produto: prod, qtd: 1 }]);
-        setEtapa(1); // Go straight to cart
+        toast(`"${prod.nome}" foi adicionado ao carrinho!`, "success");
+        // Remove a query param para evitar re-adicionar no refresh
+        window.history.replaceState({}, '', '/presentes');
       }
     }
   }, [produtoUrlId, produtos]); // removing carrinho from deps to avoid loop
@@ -553,29 +555,29 @@ export function PresentesPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-6">
                     {produtosFiltrados.map((p, index) => {
                       const cartItem = carrinho.find((c) => c.produto.id === p.id);
                       const isLast = index === produtosFiltrados.length - 1;
                       return (
                         <div ref={isLast ? lastElementRef : null} key={p.id} className={`bg-card-cream flex flex-col rounded-3xl overflow-hidden premium-shadow transition-all ${cartItem ? "ring-2 ring-primary" : ""}`}>
-                          <div className="h-40 bg-secondary-container flex items-center justify-center relative">
+                          <div className="h-32 lg:h-40 bg-secondary-container flex items-center justify-center relative">
                             {p.imagem_url ? (
                               <img src={p.imagem_url} alt={p.nome} className="w-full h-full object-cover" />
                             ) : (
-                              <span className="material-symbols-outlined text-primary text-5xl opacity-40">redeem</span>
+                              <span className="material-symbols-outlined text-primary text-4xl lg:text-5xl opacity-40">redeem</span>
                             )}
-                            {cartItem && <span className="absolute top-4 right-4 bg-primary text-on-primary text-xs font-bold px-3 py-1 rounded-full">No carrinho ({cartItem.qtd}x)</span>}
+                            {cartItem && <span className="absolute top-2 right-2 lg:top-4 lg:right-4 bg-primary text-on-primary text-[10px] lg:text-xs font-bold px-2 lg:px-3 py-1 rounded-full">No carrinho ({cartItem.qtd}x)</span>}
                           </div>
-                          <div className="p-6">
-                            <h3 className="text-lg font-semibold">{p.nome}</h3>
-                            <p className="text-sm text-on-surface-variant mt-1 line-clamp-2">{p.descricao}</p>
-                            <div className="flex justify-between items-center mt-4">
-                              <div className="text-sm">
-                                <p className="font-bold text-primary">R$ {Number(p.preco_reais).toFixed(2)}</p>
+                          <div className="p-4 lg:p-6 flex flex-col flex-1">
+                            <h3 className="text-xs sm:text-sm lg:text-lg font-semibold line-clamp-2">{p.nome}</h3>
+                            <p className="text-[10px] lg:text-sm text-on-surface-variant mt-1 line-clamp-2 flex-1">{p.descricao}</p>
+                            <div className="flex justify-between items-center mt-3 lg:mt-4">
+                              <div>
+                                <p className="font-bold text-primary text-xs sm:text-sm lg:text-base">R$ {Number(p.preco_reais).toFixed(2)}</p>
                               </div>
-                              <button type="button" onClick={() => adicionarAoCarrinho(p)} className="bg-primary text-on-primary p-3 rounded-full hover:scale-105 transition-transform shadow-md">
-                                <span className="material-symbols-outlined text-lg">add_shopping_cart</span>
+                              <button type="button" onClick={() => adicionarAoCarrinho(p)} className="bg-primary text-on-primary p-2 lg:p-3 rounded-full hover:scale-105 transition-transform shadow-md flex-shrink-0">
+                                <span className="material-symbols-outlined text-base lg:text-lg">add_shopping_cart</span>
                               </button>
                             </div>
                           </div>
@@ -987,13 +989,13 @@ export function PresentesPage() {
                 )}
                 {etapa === 0 ? (
                   <button type="button" onClick={avancar} className="flex items-center gap-2 bg-primary text-on-primary px-6 sm:px-8 py-3 rounded-full font-bold shadow-md hover:scale-[1.02] transition-transform">
-                    Ir para Carrinho
+                    Revisar Pedido
                     {carrinho.length > 0 && (
                       <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">
                         {carrinho.reduce((acc, c) => acc + c.qtd, 0)}
                       </span>
                     )}
-                    <span className="material-symbols-outlined">shopping_cart_checkout</span>
+                    <span className="material-symbols-outlined">arrow_forward</span>
                   </button>
                 ) : etapa < ETAPAS.length - 1 ? (
                   <button type="button" onClick={avancar} className="flex items-center gap-2 bg-primary text-on-primary px-6 sm:px-8 py-3 rounded-full font-bold shadow-md hover:scale-[1.02] transition-transform">

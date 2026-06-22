@@ -147,6 +147,9 @@ export async function verificarConquistas(usuarioId: number, manager?: EntityMan
     );
   };
 
+  // A conquista de boas-vindas deve ser desbloqueada imediatamente se for a primeira vez
+  await desbloquear("bem_vindo");
+
   const presentesEnviados = await em.getRepository(PresenteCupom).count({
     where: { remetenteId: usuarioId },
   });

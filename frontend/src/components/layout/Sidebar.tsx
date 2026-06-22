@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useState } from "react";
 
 const nav = [
   { href: "/", label: "Loja & Início", icon: "storefront" },
@@ -15,6 +16,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { logout, isAdmin } = useAuth();
+  const [modalNivelOpen, setModalNivelOpen] = useState(false);
 
   return (
     <aside className="hidden lg:flex w-[280px] h-screen fixed left-0 top-0 border-r border-outline-variant bg-background flex-col py-8 px-6 z-50">
@@ -91,10 +93,57 @@ export function Sidebar() {
       </button>
       <button
         type="button"
+        onClick={() => setModalNivelOpen(true)}
         className="w-full bg-primary-container text-on-primary-container py-4 rounded-full font-bold hover:brightness-105 transition-all"
       >
         Melhorar nível
       </button>
+
+      {modalNivelOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-surface-container-lowest rounded-[2rem] w-full max-w-md p-8 relative shadow-2xl">
+            <button
+              onClick={() => setModalNivelOpen(false)}
+              className="absolute top-6 right-6 text-on-surface-variant hover:text-on-surface"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            <h2 className="text-2xl font-black text-on-surface mb-2">Como subir de Nível?</h2>
+            <p className="text-on-surface-variant mb-6 text-sm">
+              Acumule pontos para subir de nível e desbloquear benefícios exclusivos no FRIK!
+            </p>
+            <ul className="space-y-4 mb-8">
+              <li className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-primary bg-primary-container p-2 rounded-full">shopping_bag</span>
+                <div>
+                  <strong className="block text-on-surface">Comprar Produtos</strong>
+                  <span className="text-sm text-on-surface-variant">Cada R$ 1 gasto na loja = 1 Ponto.</span>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-primary bg-primary-container p-2 rounded-full">task_alt</span>
+                <div>
+                  <strong className="block text-on-surface">Concluir Missões</strong>
+                  <span className="text-sm text-on-surface-variant">Confira as missões rápidas no seu painel para ganhar bônus semanais.</span>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-primary bg-primary-container p-2 rounded-full">handshake</span>
+                <div>
+                  <strong className="block text-on-surface">Fazer Trocas</strong>
+                  <span className="text-sm text-on-surface-variant">Troque cupons no Feirão e ganhe +10 Pontos a cada troca aceita!</span>
+                </div>
+              </li>
+            </ul>
+            <button
+              onClick={() => { setModalNivelOpen(false); router.push("/ranking"); }}
+              className="w-full bg-primary text-on-primary py-3 rounded-full font-bold shadow-md hover:scale-105 transition-transform"
+            >
+              Ver meu Progresso
+            </button>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

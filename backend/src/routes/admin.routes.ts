@@ -36,6 +36,8 @@ const produtoSchema = z.object({
   preco_pontos: z.number().int().nonnegative(),
   estoque: z.number().int().nonnegative().optional(),
   ativo: z.boolean().optional(),
+  categoria: z.string().optional(),
+  imagem_url: z.string().optional(),
 });
 
 const missaoSchema = z.object({

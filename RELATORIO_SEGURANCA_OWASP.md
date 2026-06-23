@@ -16,44 +16,74 @@ Este relatório consolida as vulnerabilidades e melhorias de segurança identifi
 
 ### 1.1 Credenciais Padrão e Segredos Fixos no Repositório
 **Localização:** `docker-compose.yml` (linhas 7, 10, 42, 44) e `backend/src/config/env.ts` (linha 21).
-**Descrição:** O sistema define valores padrão para senhas de banco de dados (`frik_pass`) e chaves secretas JWT (`frik-docker-jwt-secret-change-in-production`) diretamente no código/docker-compose, o que permite acesso indevido se implementado em produção sem configuração manual.
+**Descrição:** O sistema define valores padrão para senhas de banco de dados (`frik_pass`) e chaves secretas JWT (`frik-docker-jwt-secret-change-in-production`) diretamente no código/docker-compose.
 **Evidência:** 
 ```yaml
 JWT_SECRET: ${JWT_SECRET:-frik-docker-jwt-secret-change-in-production}
-MYSQL_PASSWORD: ${MYSQL_PASSWORD:-frik_pass}
 ```
-**Impacto Potencial:** Um atacante pode forjar tokens JWT válidos e acessar contas de usuários/administradores (A04: Cryptographic Failures / A02: Security Misconfiguration).
+**Impacto Potencial:** Um atacante pode forjar tokens JWT válidos (A04/A02).
 **Severidade:** Alta
-**Recomendação:** Remover os fallbacks do arquivo `env.ts` e `docker-compose.yml`, forçando a quebra da aplicação se as variáveis de ambiente não forem explicitamente fornecidas.
+**Recomendação:** Remover os fallbacks do arquivo `env.ts` e `docker-compose.yml`.
 **Referências:** CWE-798: Use of Hard-coded Credentials.
 
 ### 1.2 Ausência de Cabeçalhos de Segurança HTTP (Helmet)
 **Localização:** `backend/src/app.ts` (App setup).
-**Descrição:** O backend em Express não implementa cabeçalhos HTTP de proteção (como HSTS, CSP, X-Frame-Options, X-XSS-Protection). 
-**Evidência:** O arquivo `app.ts` apenas faz uso do `cors()` e `express.json()`.
-**Impacto Potencial:** A aplicação fica vulnerável a ataques de Clickjacking, MIME Sniffing e falhas na validação do protocolo HTTPS (A02: Security Misconfiguration).
+**Descrição:** O backend em Express não implementa cabeçalhos HTTP de proteção.
+**Impacto Potencial:** A aplicação fica vulnerável a ataques de Clickjacking (A02).
 **Severidade:** Média
-**Recomendação:** Instalar e configurar o pacote `helmet` no `app.ts`: `app.use(helmet());`
-**Referências:** CWE-693: Protection Mechanism Failure.
+**Recomendação:** Instalar e configurar o pacote `helmet` no `app.ts`.
 
 ### 1.3 Ausência de Proteção contra DoS e Força Bruta
 **Localização:** `backend/src/app.ts`
-**Descrição:** Não há implementação de Rate Limiting para restringir o número de requisições de um único IP, especialmente nas rotas de login.
-**Evidência:** Nenhuma dependência como `express-rate-limit` é utilizada em `package.json` ou `app.ts`.
-**Impacto Potencial:** Atacantes podem realizar varreduras automatizadas, ataques de força bruta em senhas e causar Negação de Serviço (DoS) sobrecarregando a API (A02/A07).
+**Descrição:** Não há implementação de Rate Limiting para restringir requisições de um único IP.
+**Impacto Potencial:** Atacantes podem realizar varreduras automatizadas e causar DoS (A02/A07).
 **Severidade:** Alta
-**Recomendação:** Instalar o pacote `express-rate-limit` e aplicá-lo globalmente ou nas rotas de `/api/auth`.
-**Referências:** CWE-307: Improper Restriction of Excessive Authentication Attempts.
+**Recomendação:** Instalar o pacote `express-rate-limit`.
 
 ### 1.4 Práticas Básicas de Logging de Segurança
-**Localização:** `backend/src/middleware/errorHandler.ts` (Linha 17).
-**Descrição:** Os erros capturados são enviados apenas para o `console.error(err)`. Não há formatação estruturada nem máscara para dados sensíveis.
+**Localização:** `backend/src/middleware/errorHandler.ts`
+**Descrição:** Os erros capturados são enviados apenas para o `console.error(err)`. Não há formatação estruturada.
+**Impacto Potencial:** PII pode vazar nos logs brutos (A09).
+**Severidade:** Baixa
+**Recomendação:** Utilizar uma biblioteca de logging estruturado.
+
+---
+
+## 2. Etapa Moderada (Autenticação e Roteamento)
+
+### 2.1 Armazenamento Inseguro de Token JWT (Local Storage)
+**Localização:** `frontend/src/lib/api.ts` (Linha 20).
+**Descrição:** O token de autenticação JWT é armazenado no `localStorage` do navegador, tornando-o acessível a qualquer script executado no domínio.
 **Evidência:**
 ```typescript
-console.error(err);
-return res.status(500).json({ erro: "Erro interno do servidor" });
+export function setToken(token: string) {
+  localStorage.setItem("frik_token", token);
+}
 ```
-**Impacto Potencial:** Dados pessoais identificáveis (PII) ou tokens podem vazar nos logs brutos da aplicação se fizerem parte do objeto de erro. Além disso, a falta de log estruturado dificulta a investigação de incidentes (A09: Security Logging and Alerting Failures).
+**Impacto Potencial:** Se a aplicação frontend sofrer uma injeção de XSS, o atacante poderá roubar o token do usuário facilmente via `localStorage.getItem` e sequestrar a sessão da vítima (A07: Authentication Failures / A05: Injection).
+**Severidade:** Alta
+**Recomendação:** Migrar o armazenamento do token JWT para Cookies com as flags `HttpOnly`, `Secure` e `SameSite=Strict`. Isso exige modificação na API para enviar o token via cabeçalho `Set-Cookie`.
+**Referências:** CWE-312: Cleartext Storage of Sensitive Information.
+
+### 2.2 Sessões não Invalidadas no Servidor (Logout Client-Side)
+**Localização:** `frontend/src/context/AuthContext.tsx` (Linha 90) e API de autenticação.
+**Descrição:** O processo de logout atual apenas remove o token do `localStorage` no lado do cliente. O servidor não mantém uma "lista negra" (blacklist) de tokens invalidados antes de expirarem (7 dias).
+**Evidência:**
+```typescript
+  const logout = () => {
+    clearToken();
+    setUser(null);
+  };
+```
+**Impacto Potencial:** Se um token for roubado, o usuário clicar em "Sair" não impede que o atacante continue usando a API até que os 7 dias de expiração passem (A07: Authentication Failures).
+**Severidade:** Média
+**Recomendação:** Implementar uma tabela de `RevokedTokens` no banco de dados e gravar o token nela ao realizar um POST para `/api/auth/logout`. O middleware de autenticação deve verificar essa lista.
+**Referências:** CWE-613: Insufficient Session Expiration.
+
+### 2.3 Ausência de Validação de Re-Autenticação em Ações Sensíveis
+**Localização:** `backend/src/routes/admin.routes.ts` e edição de perfis.
+**Descrição:** Ações administrativas críticas (ex: exclusão de campanhas ou deleção de contas) não exigem re-autenticação (inserção da senha) ou confirmação de 2FA.
+**Impacto Potencial:** Se uma sessão de administrador ou cliente for deixada desbloqueada, outra pessoa no mesmo computador pode causar danos irreversíveis (A01: Broken Access Control).
 **Severidade:** Baixa
-**Recomendação:** Utilizar uma biblioteca de logging estruturado (como Winston ou Pino) e mascarar propriedades sensíveis (senhas, tokens) antes de enviá-las para os logs do servidor.
-**Referências:** CWE-532: Insertion of Sensitive Information into Log File.
+**Recomendação:** Exigir a senha atual para confirmar ações como `DELETE /auth/me`.
+**Referências:** CWE-306: Missing Authentication for Critical Function.

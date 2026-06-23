@@ -5,10 +5,18 @@ Este relatório consolida as vulnerabilidades e melhorias de segurança identifi
 ---
 
 ## Resumo Executivo
-*(Será preenchido na Etapa 3)*
+A inspeção encontrou um total de **7 vulnerabilidades arquiteturais/técnicas**:
+- **Severidade Alta:** 3 (Armazenamento de JWT inseguro, Chaves Hardcoded e Ausência de Rate Limiting)
+- **Severidade Média:** 2 (Falta de Helmet/Headers de Segurança, Invalidação de Sessão client-side)
+- **Severidade Baixa:** 2 (Logging de erros sem sanitização, Ausência de re-autenticação para deleção de conta)
+- **O que está seguro:** Não foram identificados pontos diretos de SQL Injection (o TypeORM parametrizou adequadamente as queries) nem XSS direto (`dangerouslySetInnerHTML` não utilizado no React).
 
 ## Top 5 Ações Mais Urgentes
-*(Será preenchido na Etapa 3)*
+1. **Migrar o armazenamento do JWT:** Remover do `localStorage` (suscetível a XSS) para Cookies do tipo `HttpOnly/Secure/SameSite=Strict`.
+2. **Remover segredos fixos:** Retirar senhas e fallbacks do JWT fixos no `env.ts` e no `docker-compose.yml`.
+3. **Instalar Rate Limiting:** Adicionar o `express-rate-limit` no Express para impedir ataques de Força Bruta ou DoS.
+4. **Configurar Headers de Segurança:** Implementar o middleware `helmet` no backend Express para proteção de Clickjacking e Sniffing de Mimetypes.
+5. **Implementar Revogação de Sessão (Logout Blacklist):** Registrar tokens inativados pelo usuário no banco de dados ao fazer logout, impedindo reutilização até a expiração natural.
 
 ---
 
@@ -87,3 +95,21 @@ export function setToken(token: string) {
 **Severidade:** Baixa
 **Recomendação:** Exigir a senha atual para confirmar ações como `DELETE /auth/me`.
 **Referências:** CWE-306: Missing Authentication for Critical Function.
+
+---
+
+## 3. Etapa Profunda (Lógica de Negócios e ORM)
+
+### 3.1 Prevenção Efetiva a SQL Injection
+**Localização:** `backend/src/services/*` e Controllers.
+**Descrição:** A inspeção focou na análise da montagem de queries SQL via TypeORM. 
+**Resultado:** Seguro. A aplicação utiliza adequadamente o `createQueryBuilder` parametrizado. As únicas queries puras (.query()) encontradas estão contidas exclusivamente dentro dos arquivos de migração (`1748265600000-InitialSchema.ts`, etc.), que não recebem input de usuários.
+**Severidade:** Mitigado (Não aplicável)
+**Referências:** A03:2021-Injection.
+
+### 3.2 Prevenção contra Cross-Site Scripting (XSS)
+**Localização:** Frontend (React).
+**Descrição:** Buscas profundas no código fonte do frontend não revelaram o uso de métodos arriscados como o `dangerouslySetInnerHTML`.
+**Resultado:** Seguro, com ressalva. O React por padrão mitiga injeções XSS escapando as variáveis injetadas no JSX. A ressalva recai sobre a utilização do `localStorage` (item 2.1) que será a maior vítima caso uma biblioteca vulnerável no frontend (A06:2021) possibilite execução de XSS.
+**Severidade:** Mitigado por padrão.
+**Referências:** A03:2021-Injection.

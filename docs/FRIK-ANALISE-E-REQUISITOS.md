@@ -244,27 +244,37 @@ Forma de pagamento (simulação):
 
 ---
 
-## 12. PRÓXIMOS PASSOS SUGERIDOS
+## 12. STATUS DE IMPLEMENTAÇÃO (MVP Entregue)
 
-1. **Corrigir bugs urgentes** (sala de troca - membros não aparecem)
-2. **Renomear itens no menu** (Simulador de Caixa → Registrar compras / Presentes → Produtos)
-3. **Remover "Oportunidades de Troca"** do Mercado de Cupons
-4. **Adicionar tela de cadastro** simples na tela de login
-5. **Implementar missões** com selo de concluídas
-6. **Melhorar ranking** com múltiplas abas
-7. **Adicionar acompanhamento de entrega** nos produtos
-8. **Integrar ViaCEP** para busca de endereço
-9. **Implementar simulação de pagamento** no Registrar compras
-10. **Adicionar conquistas (badges)** como funcionalidade futura
+### ✅ Implementado no MVP
+1. Tela de cadastro simples na página de login (sem verificação de e-mail)
+2. Missões ativas na tela inicial com progresso (ex: 1/3) e selo de concluídas
+3. Mercado de Cupons apenas com resgate por pontos (sem "oportunidades de troca")
+4. Tela de Produtos com opções "Comprar para mim" e "Dar de presente"
+5. Salas de Troca com lista de membros corrigida e propostas funcionais (aceitar/recusar)
+6. Tela de Registrar Compras com simulação de pagamento (Crédito/Débito/PIX)
+7. Painel Admin com CRUD completo de campanhas, cupons, produtos e missões
+8. Ranking com múLtiplas abas e posição do usuário logado
+9. Conquistas com desbloqueio automático e notificações em tempo real
+10. Sistema de Amigos com gestão de endereços e cartões de crédito
+
+### ❌ Fora do escopo do MVP (Versão Futura)
+1. Cálculo de rota/frete com Google Maps API
+2. Busca automática de CEP com ViaCEP API
+3. Ranking específico de Conquistas
+4. Envio real de e-mail/WhatsApp/SMS (atualmente simulado por link)
+5. Funcionalidades de IA com OpenAI API
 
 ---
 
 ## 13. OBSERVAÇÕES FINAIS
 
-- A aba "Cupom de presente" deve ser **removida** (já substituída pelas Salas de Troca)
-- Missões e conquistas são **funcionalidades separadas** (não confundir)
-- O ranking **não deve ser melhorado na tela inicial** - ele tem tela própria
-- Prioridade é **corrigir bugs existentes** antes de adicionar funcionalidades novas complexas
+- A aba "Cupom de presente" foi **removida** e substituída pelas Salas de Troca e pelo sistema de Presentes
+- Missões e conquistas são **funcionalidades separadas** e complementares
+- O ranking tem tela própria com múLtiplas categorias
+- Todos os bugs de alta prioridade foram corrigidos antes da entrega
+- O MVP foi entregue com todas as funcionalidades de Alta Prioridade concluídas
+- Funcionalidades de prioridade Média relacionadas a APIs externas e entrega física ficam para a Versão 2.0
 
 ---
 

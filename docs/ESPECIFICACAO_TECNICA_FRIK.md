@@ -4,7 +4,7 @@
 **Projeto:** FRIK  
 **Versão do documento:** 1.0  
 **Data:** 21/05/2026  
-**Status do repositório:** Backend implementado (MVP API) | Frontend planejado (repositório separado)
+**Status do repositório:** MVP Completo — Backend e Frontend implementados em monorepo único
 
 ---
 
@@ -31,25 +31,25 @@ O **FRIK** transforma a experiência de compra em uma jornada gamificada: o clie
 | Cliente | Solicitar/aceitar/recusar troca de cupons | Implementado |
 | Cliente | Dar cupom de presente (e-mail, WhatsApp, SMS, link) | Implementado |
 | Cliente | Comprar produto físico e enviar como presente | Implementado |
-| Cliente | Consultar ranking global, benefícios por nível, conquistas | Parcial (conquistas sem desbloqueio automático) |
+| Cliente | Consultar ranking global, benefícios por nível, conquistas | Implementado |
 | Cliente | Consultar catálogo de produtos | Implementado |
-| Administrador | CRUD campanhas, cupons template, produtos, missões | Planejado |
-| Administrador | Relatórios: retenção, ticket médio, segmentação | Planejado |
-| Sistema | Creditar pontos após compra | Planejado (tabela `compra` existe) |
-| Sistema | Notificar troca/presente/ranking | Planejado (tabela `notificacao` existe) |
+| Administrador | CRUD campanhas, cupons template, produtos, missões | Implementado |
+| Administrador | Dashboard com métricas, ticket médio e segmentação por nível | Implementado |
+| Sistema | Creditar pontos após compra | Implementado (`compra.service.ts`) |
+| Sistema | Notificar troca/presente/ranking/missão/conquista | Implementado (`gamificacao.service.ts`) |
 
 ### 2. Arquitetura e Plataforma Tecnológica
 
 | Camada | Tecnologia | Observação |
 |--------|------------|------------|
-| **Arquitetura** | API REST (Backend) + SPA (Frontend) | Dois repositórios Git separados |
-| **Backend** | Node.js 18+, Express 4, TypeScript, mysql2 (pool) | Sem ORM; SQL em `database/schema.sql` |
-| **Frontend** | React ou Next.js + TypeScript, Bootstrap 5, Chart.js | Repositório `frontend/` — a iniciar |
-| **Banco de dados** | MySQL 8 | Administração via MySQL Workbench |
-| **Autenticação** | JWT Bearer (`Authorization: Bearer <token>`) | OAuth Google: planejado |
-| **Testes API** | Insomnia (`backend/insomnia/frik-api.json`) | — |
-| **Versionamento** | Git / GitHub | `backend/` e `frontend/` independentes |
-| **Execução** | Local (sem Docker no MVP atual) | Docker: planejado |
+| **Arquitetura** | API REST (Backend) + SSR/SPA (Frontend) | Monorepo único com `/backend` e `/frontend` |
+| **Backend** | Node.js 18+, Express 4, TypeScript, TypeORM 0.3 | Migrations em `backend/src/database/migrations/` |
+| **Frontend** | Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS | Pasta `frontend/` — implementado |
+| **Banco de dados** | MySQL 8.0 | Gerenciado via TypeORM (sem schema.sql avulso) |
+| **Autenticação** | JWT Bearer (`Authorization: Bearer <token>`) + Bcrypt 10 rounds | OAuth Google: escopo futuro |
+| **Validação** | Zod (schemas de entrada nas rotas) | — |
+| **Versionamento** | Git / GitHub | Monorepo único |
+| **Execução** | Docker + Docker Compose (recomendado) | Também suporta execução local com Node + MySQL |
 
 **Base URL da API:** `http://localhost:3333/api`  
 **Prefixo de rotas:** `/api` (não `/api/v1` no MVP atual)

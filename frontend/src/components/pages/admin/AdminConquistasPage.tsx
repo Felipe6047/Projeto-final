@@ -8,16 +8,7 @@ import {
   adminInputClass,
 } from "@/components/admin/AdminFormModal";
 import { useToast } from "@/context/ToastContext";
-"use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { AdminShell } from "@/components/admin/AdminShell";
-import {
-  AdminField,
-  AdminFormModal,
-  adminInputClass,
-} from "@/components/admin/AdminFormModal";
-import { useToast } from "@/context/ToastContext";
 import { api } from "@/lib/api";
 
 interface Conquista {

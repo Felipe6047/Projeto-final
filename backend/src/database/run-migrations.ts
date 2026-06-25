@@ -15,7 +15,9 @@ async function runMigrations() {
   await AppDataSource.destroy();
 }
 
-runMigrations().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (require.main === module) {
+  runMigrations().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

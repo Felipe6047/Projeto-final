@@ -649,8 +649,10 @@ export async function runSeed(ds?: DataSource) {
   await seed(ds);
 }
 
-seed().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (require.main === module) {
+  runSeed().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
 

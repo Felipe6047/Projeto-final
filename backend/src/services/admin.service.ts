@@ -11,6 +11,7 @@ import { CupomTemplate } from "../entities/CupomTemplate";
 import { Produto } from "../entities/Produto";
 import { Missao } from "../entities/Missao";
 import { EventoSazonal } from "../entities/EventoSazonal";
+import { Conquista } from "../entities/Conquista";
 import { UsuarioMissao } from "../entities/UsuarioMissao";
 import { UsuarioConquista } from "../entities/UsuarioConquista";
 
@@ -109,6 +110,8 @@ export async function listarCampanhas() {
     inicio_em: r.inicioEm,
     fim_em: r.fimEm,
     ativa: r.ativa,
+    multiplicador_pontos: r.multiplicadorPontos,
+    desconto_resgate_cupons: r.descontoResgateCupons,
     criado_em: r.criadoEm,
   }));
 }
@@ -120,6 +123,8 @@ export async function criarCampanha(data: {
   inicio_em: string;
   fim_em: string;
   ativa?: boolean;
+  multiplicador_pontos?: number;
+  desconto_resgate_cupons?: number;
 }) {
   const campanha = await AppDataSource.getRepository(Campanha).save({
     titulo: data.titulo,
@@ -128,6 +133,8 @@ export async function criarCampanha(data: {
     inicioEm: new Date(data.inicio_em),
     fimEm: new Date(data.fim_em),
     ativa: data.ativa !== false,
+    multiplicadorPontos: data.multiplicador_pontos ?? 1.0,
+    descontoResgateCupons: data.desconto_resgate_cupons ?? 0.00,
   });
   return campanha.id;
 }
@@ -141,6 +148,8 @@ export async function atualizarCampanha(
     inicio_em: string;
     fim_em: string;
     ativa: boolean;
+    multiplicador_pontos: number;
+    desconto_resgate_cupons: number;
   }>
 ) {
   const patch: Partial<Campanha> = {};
@@ -150,6 +159,8 @@ export async function atualizarCampanha(
   if (data.inicio_em !== undefined) patch.inicioEm = new Date(data.inicio_em);
   if (data.fim_em !== undefined) patch.fimEm = new Date(data.fim_em);
   if (data.ativa !== undefined) patch.ativa = data.ativa;
+  if (data.multiplicador_pontos !== undefined) patch.multiplicadorPontos = data.multiplicador_pontos;
+  if (data.desconto_resgate_cupons !== undefined) patch.descontoResgateCupons = data.desconto_resgate_cupons;
 
   if (!Object.keys(patch).length) return false;
 
@@ -253,17 +264,21 @@ export async function listarProdutosAdmin() {
 export async function criarProduto(data: {
   nome: string;
   descricao?: string;
+  categoria?: string;
   preco_reais: number;
   preco_pontos: number;
   estoque?: number;
+  imagem_url?: string;
   ativo?: boolean;
 }) {
   const produto = await AppDataSource.getRepository(Produto).save({
     nome: data.nome,
     descricao: data.descricao ?? null,
+    categoria: data.categoria ?? "outros",
     precoReais: String(data.preco_reais),
     precoPontos: data.preco_pontos,
     estoque: data.estoque ?? 0,
+    imagemUrl: data.imagem_url ?? null,
     ativo: data.ativo !== false,
   });
   return produto.id;
@@ -402,9 +417,11 @@ function mapProdutoPatch(data: Record<string, unknown>): Partial<Produto> {
   const patch: Partial<Produto> = {};
   if (data.nome !== undefined) patch.nome = String(data.nome);
   if (data.descricao !== undefined) patch.descricao = data.descricao as string | null;
+  if (data.categoria !== undefined) patch.categoria = String(data.categoria);
   if (data.preco_reais !== undefined) patch.precoReais = String(data.preco_reais);
   if (data.preco_pontos !== undefined) patch.precoPontos = Number(data.preco_pontos);
   if (data.estoque !== undefined) patch.estoque = Number(data.estoque);
+  if (data.imagem_url !== undefined) patch.imagemUrl = data.imagem_url as string | null;
   if (data.ativo !== undefined) patch.ativo = Boolean(data.ativo);
   return patch;
 }
@@ -436,3 +453,65 @@ function mapEventoPatch(data: Record<string, unknown>): Partial<EventoSazonal> {
   if (data.ativo !== undefined) patch.ativo = Boolean(data.ativo);
   return patch;
 }
+
+// --- Conquistas ---
+export async function listarConquistas() {
+  const conquistas = await AppDataSource.getRepository(Conquista).find({
+    order: { id: "ASC" },
+  });
+  return conquistas.map((c) => ({
+    id: c.id,
+    slug: c.slug,
+    nome: c.nome,
+    descricao: c.descricao,
+    icone: c.icone,
+    meta_tipo: c.metaTipo,
+    meta_valor: c.metaValor,
+    pontos_bonus: c.pontosBonus,
+  }));
+}
+
+export async function criarConquista(data: {
+  slug: string;
+  nome: string;
+  descricao: string;
+  icone: string;
+  meta_tipo: string;
+  meta_valor: number;
+  pontos_bonus?: number;
+}) {
+  const conquista = await AppDataSource.getRepository(Conquista).save({
+    slug: data.slug,
+    nome: data.nome,
+    descricao: data.descricao,
+    icone: data.icone,
+    metaTipo: data.meta_tipo,
+    metaValor: data.meta_valor,
+    pontosBonus: data.pontos_bonus ?? 0,
+  });
+  return conquista.id;
+}
+
+function mapConquistaPatch(data: Record<string, unknown>): Partial<Conquista> {
+  const patch: Partial<Conquista> = {};
+  if (data.nome !== undefined) patch.nome = String(data.nome);
+  if (data.descricao !== undefined) patch.descricao = String(data.descricao);
+  if (data.icone !== undefined) patch.icone = String(data.icone);
+  if (data.meta_tipo !== undefined) patch.metaTipo = String(data.meta_tipo);
+  if (data.meta_valor !== undefined) patch.metaValor = Number(data.meta_valor);
+  if (data.pontos_bonus !== undefined) patch.pontosBonus = Number(data.pontos_bonus);
+  return patch;
+}
+
+export async function atualizarConquista(id: number, data: Record<string, unknown>) {
+  const patch = mapConquistaPatch(data);
+  if (!Object.keys(patch).length) return false;
+  const result = await AppDataSource.getRepository(Conquista).update({ id }, patch);
+  return (result.affected ?? 0) > 0;
+}
+
+export async function excluirConquista(id: number) {
+  const result = await AppDataSource.getRepository(Conquista).delete({ id });
+  return (result.affected ?? 0) > 0;
+}
+

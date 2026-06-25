@@ -14,6 +14,7 @@ import {
   incrementarMissao,
   verificarConquistas,
 } from "./gamificacao.service";
+import { listarCampanhasAtivas } from "./campanha.service";
 
 const DIAS_MIN_TROCA = 7;
 
@@ -38,8 +39,11 @@ export async function listarMeusCupons(usuarioId: number) {
     .getRawMany();
 }
 
-export async function listarTemplatesParaResgate() {
-  return AppDataSource.getRepository(CupomTemplate)
+export async function listarTemplatesParaResgate(usuarioId: number) {
+  const campanhas = await listarCampanhasAtivas(usuarioId);
+  const maxDesconto = campanhas.reduce((max, c) => Math.max(max, Number(c.descontoResgateCupons ?? 0)), 0);
+
+  const templates = await AppDataSource.getRepository(CupomTemplate)
     .createQueryBuilder("ct")
     .select([
       "ct.id AS id",
@@ -56,6 +60,14 @@ export async function listarTemplatesParaResgate() {
     .where("ct.ativo = 1")
     .orderBy("ct.precoPontos", "ASC")
     .getRawMany();
+
+  if (maxDesconto > 0) {
+    for (const t of templates) {
+      t.preco_pontos = Math.max(0, Math.floor(t.preco_pontos * (1 - maxDesconto / 100)));
+    }
+  }
+
+  return templates;
 }
 
 export async function resgatarTemplateComPontos(
@@ -71,9 +83,17 @@ export async function resgatarTemplateComPontos(
     const usuario = await manager.getRepository(Usuario).findOne({
       where: { id: usuarioId },
       select: ["id", "pontos", "kycStatus"],
+      lock: { mode: "pessimistic_write" },
     });
     if (!usuario) return { erro: "Usuário não encontrado" };
-    if (usuario.pontos < template.precoPontos) {
+
+    const campanhas = await listarCampanhasAtivas(usuarioId);
+    const maxDesconto = campanhas.reduce((max, c) => Math.max(max, Number(c.descontoResgateCupons ?? 0)), 0);
+    const precoFinal = maxDesconto > 0 
+      ? Math.max(0, Math.floor(template.precoPontos * (1 - maxDesconto / 100))) 
+      : template.precoPontos;
+
+    if (usuario.pontos < precoFinal) {
       return { erro: "Pontos insuficientes para resgatar este cupom" };
     }
 
@@ -110,7 +130,7 @@ export async function resgatarTemplateComPontos(
 
     await manager
       .getRepository(Usuario)
-      .decrement({ id: usuarioId }, "pontos", template.precoPontos);
+      .decrement({ id: usuarioId }, "pontos", precoFinal);
 
     const atualizado = await manager.getRepository(Usuario).findOneOrFail({
       where: { id: usuarioId },
@@ -119,7 +139,7 @@ export async function resgatarTemplateComPontos(
 
     await manager.getRepository(HistoricoPontos).save({
       usuarioId,
-      valor: -template.precoPontos,
+      valor: -precoFinal,
       saldoApos: atualizado.pontos,
       tipo: "resgate",
       referenciaTipo: "cupom_template",
@@ -131,7 +151,7 @@ export async function resgatarTemplateComPontos(
       cupomId: cupom.id,
       codigo: cupom.codigo,
       titulo: template.titulo,
-      pontosUsados: template.precoPontos,
+      pontosUsados: precoFinal,
       saldoPontos: atualizado.pontos,
     };
   });
@@ -236,6 +256,7 @@ export async function solicitarTroca(data: {
       const usr = await manager.getRepository(Usuario).findOne({
         where: { id: data.solicitanteId },
         select: { id: true, pontos: true },
+        lock: { mode: "pessimistic_write" },
       });
       if ((usr?.pontos ?? 0) < taxa) {
         return { erro: "Pontos insuficientes para taxa de troca" };
@@ -343,24 +364,7 @@ export async function responderTroca(
       manager
     );
 
-    // Bônus de 10 pontos pela troca bem sucedida
-    const addPts = async (uid: number) => {
-      await manager.getRepository(Usuario).increment({ id: uid }, "pontos", 10);
-      const userAtualizado = await manager.getRepository(Usuario).findOneBy({ id: uid });
-      if (userAtualizado) {
-        await manager.getRepository(HistoricoPontos).save({
-          usuarioId: uid,
-          valor: 10,
-          saldoApos: userAtualizado.pontos,
-          tipo: "missao",
-          referenciaTipo: "troca",
-          referenciaId: String(p.id),
-          descricao: "Bônus por troca de cupom concluída",
-        });
-      }
-    };
-    await addPts(p.solicitanteId);
-    await addPts(p.proprietarioId);
+
 
     await incrementarMissao(p.solicitanteId, "trocas", 1, manager);
     await incrementarMissao(p.proprietarioId, "trocas", 1, manager);

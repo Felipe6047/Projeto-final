@@ -15,35 +15,43 @@ export async function creditarCashbackCompra(
   valorCompra: number,
   manager?: EntityManager
 ) {
-  const em = manager ?? AppDataSource.manager;
-  const row = await em
-    .getRepository(Usuario)
-    .createQueryBuilder("u")
-    .innerJoin("u.nivel", "n")
-    .select(["u.saldoWallet AS saldo", "n.slug AS slug"])
-    .where("u.id = :id", { id: usuarioId })
-    .getRawOne<{ saldo: string; slug: string }>();
+  const execute = async (em: EntityManager) => {
+    const row = await em
+      .getRepository(Usuario)
+      .createQueryBuilder("u")
+      .innerJoin("u.nivel", "n")
+      .select(["u.id", "u.saldoWallet AS saldo", "n.slug AS slug"])
+      .where("u.id = :id", { id: usuarioId })
+      .setLock("pessimistic_write")
+      .getRawOne<{ id: number; saldo: string; slug: string }>();
 
-  if (!row) return;
+    if (!row) return;
 
-  const pct = CASHBACK_POR_NIVEL[row.slug] ?? 0.01;
-  const cashback = Math.round(valorCompra * pct * 100) / 100;
-  if (cashback <= 0) return;
+    const pct = CASHBACK_POR_NIVEL[row.slug] ?? 0.01;
+    const cashback = Math.round(valorCompra * pct * 100) / 100;
+    if (cashback <= 0) return;
 
-  const saldoAtual = Number(row.saldo);
-  const novoSaldo = saldoAtual + cashback;
-  await em.getRepository(Usuario).update(
-    { id: usuarioId },
-    { saldoWallet: novoSaldo.toFixed(2) }
-  );
+    const saldoAtual = Number(row.saldo);
+    const novoSaldo = saldoAtual + cashback;
+    await em.getRepository(Usuario).update(
+      { id: usuarioId },
+      { saldoWallet: novoSaldo.toFixed(2) }
+    );
 
-  await em.getRepository(ExtratoWallet).save({
-    usuarioId,
-    valor: String(cashback.toFixed(2)),
-    saldoApos: novoSaldo.toFixed(2),
-    tipo: "cashback",
-    descricao: `Cashback ${(pct * 100).toFixed(0)}% sobre compra de R$ ${valorCompra.toFixed(2)}`,
-  });
+    await em.getRepository(ExtratoWallet).save({
+      usuarioId,
+      valor: String(cashback.toFixed(2)),
+      saldoApos: novoSaldo.toFixed(2),
+      tipo: "cashback",
+      descricao: `Cashback ${(pct * 100).toFixed(0)}% sobre compra de R$ ${valorCompra.toFixed(2)}`,
+    });
+  };
+
+  if (manager) {
+    await execute(manager);
+  } else {
+    await AppDataSource.transaction(execute);
+  }
 }
 
 export async function debitarWallet(
@@ -52,31 +60,39 @@ export async function debitarWallet(
   descricao: string,
   manager?: EntityManager
 ) {
-  const em = manager ?? AppDataSource.manager;
-  const usuario = await em.getRepository(Usuario).findOne({
-    where: { id: usuarioId },
-    select: ["id", "saldoWallet"],
-  });
-  if (!usuario) return { erro: "Usuário não encontrado" };
+  const execute = async (em: EntityManager) => {
+    const usuario = await em.getRepository(Usuario).findOne({
+      where: { id: usuarioId },
+      select: ["id", "saldoWallet"],
+      lock: { mode: "pessimistic_write" },
+    });
+    if (!usuario) return { erro: "Usuário não encontrado" };
 
-  const saldo = Number(usuario.saldoWallet);
-  if (saldo < valor) return { erro: "Saldo da carteira insuficiente" };
+    const saldo = Number(usuario.saldoWallet);
+    if (saldo < valor) return { erro: "Saldo da carteira insuficiente" };
 
-  const novoSaldo = saldo - valor;
-  await em.getRepository(Usuario).update(
-    { id: usuarioId },
-    { saldoWallet: novoSaldo.toFixed(2) }
-  );
+    const novoSaldo = saldo - valor;
+    await em.getRepository(Usuario).update(
+      { id: usuarioId },
+      { saldoWallet: novoSaldo.toFixed(2) }
+    );
 
-  await em.getRepository(ExtratoWallet).save({
-    usuarioId,
-    valor: String((-valor).toFixed(2)),
-    saldoApos: novoSaldo.toFixed(2),
-    tipo: "pagamento",
-    descricao,
-  });
+    await em.getRepository(ExtratoWallet).save({
+      usuarioId,
+      valor: String((-valor).toFixed(2)),
+      saldoApos: novoSaldo.toFixed(2),
+      tipo: "pagamento",
+      descricao,
+    });
 
-  return { ok: true };
+    return { ok: true };
+  };
+
+  if (manager) {
+    return execute(manager);
+  } else {
+    return AppDataSource.transaction(execute);
+  }
 }
 
 export async function listarExtratoWallet(usuarioId: number, limite = 20) {

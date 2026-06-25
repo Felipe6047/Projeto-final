@@ -9,6 +9,8 @@ import { CouponLimits1748265900000 } from "../database/migrations/1748265900000-
 import { GamificationStreak1748266000000 } from "../database/migrations/1748266000000-GamificationStreak";
 import { ProductCategories1748266100000 } from "../database/migrations/1748266100000-ProductCategories";
 import { CartaoCreditoSalaId1748266200000 } from "../database/migrations/1748266200000-CartaoCreditoSalaId";
+import { CampanhaBonus1748266300000 } from "../database/migrations/1748266300000-CampanhaBonus";
+import { ConquistaGamificacao1748266400000 } from "../database/migrations/1748266400000-ConquistaGamificacao";
 
 export const AppDataSource = new DataSource({
   type: "mysql",
@@ -26,6 +28,8 @@ export const AppDataSource = new DataSource({
     GamificationStreak1748266000000,
     ProductCategories1748266100000,
     CartaoCreditoSalaId1748266200000,
+    CampanhaBonus1748266300000,
+    ConquistaGamificacao1748266400000,
   ],
   synchronize: false,
   logging: env.nodeEnv === "development",

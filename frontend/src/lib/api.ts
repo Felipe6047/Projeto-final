@@ -265,6 +265,9 @@ export async function getTodasConquistas() {
       nome: string;
       descricao: string;
       icone: string;
+      meta_tipo: string;
+      meta_valor: number;
+      pontos_bonus: number;
       desbloqueada: number;
       desbloqueada_em: string | null;
     }[]
@@ -801,6 +804,8 @@ export interface CampanhaAdmin {
   inicio_em: string;
   fim_em: string;
   ativa?: boolean | number;
+  multiplicador_pontos?: number;
+  desconto_resgate_cupons?: number;
 }
 
 export interface CupomTemplateAdmin {

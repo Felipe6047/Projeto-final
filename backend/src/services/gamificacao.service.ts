@@ -10,6 +10,7 @@ import { Missao } from "../entities/Missao";
 import { HistoricoPontos } from "../entities/HistoricoPontos";
 import { PresenteCupom } from "../entities/PresenteCupom";
 import { PropostaTroca } from "../entities/PropostaTroca";
+import { CupomUsuario } from "../entities/CupomUsuario";
 
 export async function criarNotificacao(
   usuarioId: number,
@@ -124,19 +125,12 @@ export async function verificarConquistas(usuarioId: number, manager?: EntityMan
   const conquistaRepo = em.getRepository(Conquista);
   const ucRepo = em.getRepository(UsuarioConquista);
 
-  const jaTem = async (slug: string) => {
-    const c = await conquistaRepo.findOne({ where: { slug } });
-    if (!c) return true;
-    const uc = await ucRepo.findOne({
-      where: { usuarioId, conquistaId: c.id },
-    });
-    return !!uc;
-  };
+  const todasConquistas = await conquistaRepo.find();
+  const conquistadas = await ucRepo.find({ where: { usuarioId } });
+  const conquistadasIds = new Set(conquistadas.map((uc) => uc.conquistaId));
 
-  const desbloquear = async (slug: string) => {
-    if (await jaTem(slug)) return;
-    const c = await conquistaRepo.findOne({ where: { slug } });
-    if (!c) return;
+  const desbloquear = async (c: Conquista) => {
+    if (conquistadasIds.has(c.id)) return;
     await ucRepo.save({ usuarioId, conquistaId: c.id });
     await criarNotificacao(
       usuarioId,
@@ -145,26 +139,75 @@ export async function verificarConquistas(usuarioId: number, manager?: EntityMan
       "conquista",
       manager
     );
-  };
 
-  // A conquista de boas-vindas deve ser desbloqueada imediatamente se for a primeira vez
-  await desbloquear("bem_vindo");
+    if (c.pontosBonus > 0) {
+      const u = await em.getRepository(Usuario).findOne({ where: { id: usuarioId } });
+      if (u) {
+        u.pontos += c.pontosBonus;
+        await em.getRepository(Usuario).save(u);
+        await em.getRepository(HistoricoPontos).save({
+          usuarioId,
+          valor: c.pontosBonus,
+          saldoApos: u.pontos,
+          tipo: "missao",
+          referenciaTipo: "conquista",
+          referenciaId: String(c.id),
+          descricao: `Bônus por conquista: ${c.nome}`,
+        });
+      }
+    }
+  };
 
   const presentesEnviados = await em.getRepository(PresenteCupom).count({
     where: { remetenteId: usuarioId },
   });
-  if (presentesEnviados >= 5) await desbloquear("amigo_ouro");
-
   const trocasAceitas = await em.getRepository(PropostaTroca).count({
     where: [
       { solicitanteId: usuarioId, status: "aceita" },
       { proprietarioId: usuarioId, status: "aceita" },
     ],
   });
-  if (trocasAceitas >= 10) await desbloquear("troca_justa");
-
   const presentesResgatados = await em.getRepository(PresenteCupom).count({
     where: { remetenteId: usuarioId, status: "resgatado" },
   });
-  if (presentesResgatados >= 1) await desbloquear("corrente_bem");
+  const comprasCount = await em.getRepository(CupomUsuario).count({
+    where: { usuarioId, origem: "compra" },
+  });
+
+  for (const c of todasConquistas) {
+    if (conquistadasIds.has(c.id)) continue;
+
+    let atingiu = false;
+    switch (c.metaTipo) {
+      case "compras_count":
+        atingiu = comprasCount >= c.metaValor;
+        break;
+      case "trocas_count":
+        atingiu = trocasAceitas >= c.metaValor;
+        break;
+      case "presentes_enviados":
+        atingiu = presentesEnviados >= c.metaValor;
+        break;
+      case "presentes_resgatados":
+        atingiu = presentesResgatados >= c.metaValor;
+        break;
+      case "manual":
+        // Manual ou boas-vindas: trataremos bem_vindo isoladamente para legibilidade
+        if (c.slug === "bem_vindo") atingiu = true;
+        break;
+      default:
+        // Caso fallback para antigas cadastradas q não têm meta_tipo correto
+        if (c.slug === "bem_vindo") atingiu = true;
+        if (c.slug === "iniciante" && comprasCount >= 1) atingiu = true;
+        if (c.slug === "amigo_ouro" && presentesEnviados >= 5) atingiu = true;
+        if (c.slug === "troca_justa" && trocasAceitas >= 10) atingiu = true;
+        if (c.slug === "corrente_bem" && presentesResgatados >= 1) atingiu = true;
+        break;
+    }
+
+    if (atingiu) {
+      await desbloquear(c);
+      conquistadasIds.add(c.id);
+    }
+  }
 }

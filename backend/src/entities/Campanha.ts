@@ -23,6 +23,12 @@ export class Campanha {
   @Column({ type: "tinyint", width: 1, default: 1 })
   ativa!: boolean;
 
+  @Column({ name: "multiplicador_pontos", type: "decimal", precision: 3, scale: 1, default: 1.0 })
+  multiplicadorPontos!: number;
+
+  @Column({ name: "desconto_resgate_cupons", type: "decimal", precision: 5, scale: 2, default: 0.00 })
+  descontoResgateCupons!: number;
+
   @CreateDateColumn({ name: "criado_em" })
   criadoEm!: Date;
 }

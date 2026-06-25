@@ -14,6 +14,8 @@ const campanhaSchema = z.object({
   inicio_em: z.string(),
   fim_em: z.string(),
   ativa: z.boolean().optional(),
+  multiplicador_pontos: z.number().optional(),
+  desconto_resgate_cupons: z.number().optional(),
 });
 
 const cupomTemplateSchema = z.object({
@@ -60,6 +62,15 @@ const eventoSchema = z.object({
   ativa: z.boolean().optional(),
 });
 
+const conquistaSchema = z.object({
+  slug: z.string().min(2),
+  nome: z.string().min(2),
+  descricao: z.string(),
+  icone: z.string(),
+  meta_tipo: z.string(),
+  meta_valor: z.number(),
+  pontos_bonus: z.number().optional(),
+});
 router.get("/dashboard", async (_req, res, next) => {
   try {
     return ok(res, await adminService.getDashboard());
@@ -285,6 +296,49 @@ router.delete("/eventos/:id", async (req, res, next) => {
   try {
     const okDel = await adminService.excluirEvento(Number(req.params.id));
     if (!okDel) return fail(res, "Evento não encontrado", 404);
+    return ok(res, { ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Conquistas
+router.get("/conquistas", async (_req, res, next) => {
+  try {
+    return ok(res, await adminService.listarConquistas());
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post("/conquistas", async (req, res, next) => {
+  try {
+    const body = conquistaSchema.parse(req.body);
+    const id = await adminService.criarConquista(body);
+    return ok(res, { id }, 201);
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.put("/conquistas/:id", async (req, res, next) => {
+  try {
+    const body = conquistaSchema.partial().parse(req.body);
+    const okUpdate = await adminService.atualizarConquista(
+      Number(req.params.id),
+      body
+    );
+    if (!okUpdate) return fail(res, "Conquista não encontrada", 404);
+    return ok(res, { ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.delete("/conquistas/:id", async (req, res, next) => {
+  try {
+    const okDel = await adminService.excluirConquista(Number(req.params.id));
+    if (!okDel) return fail(res, "Conquista não encontrada", 404);
     return ok(res, { ok: true });
   } catch (e) {
     next(e);

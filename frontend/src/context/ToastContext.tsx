@@ -26,7 +26,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const toast = useCallback((message: string, type: ToastType = "info") => {
     const id = Date.now() + Math.random();
-    setItems((prev) => [...prev, { id, message, type }]);
+    // Remove toast com mesma mensagem antes de adicionar novo (evita empilhamento)
+    setItems((prev) => {
+      const filtered = prev.filter((t) => t.message !== message);
+      return [...filtered, { id, message, type }];
+    });
     setTimeout(() => {
       setItems((prev) => prev.filter((t) => t.id !== id));
     }, 4000);

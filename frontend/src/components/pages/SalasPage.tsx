@@ -30,6 +30,8 @@ export function SalasPage() {
   const [nomeNova, setNomeNova] = useState("");
   const [codigoEntrar, setCodigoEntrar] = useState("");
   const [loading, setLoading] = useState(true);
+  const [criando, setCriando] = useState(false);
+  const [entrando, setEntrando] = useState(false);
   const [salaAberta, setSalaAberta] = useState<SalaDetalhe | null>(null);
   const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
   const [meusCupons, setMeusCupons] = useState<Cupom[]>([]);
@@ -74,7 +76,8 @@ export function SalasPage() {
   }
 
   async function handleCriar() {
-    if (!nomeNova.trim()) return;
+    if (!nomeNova.trim() || criando) return;
+    setCriando(true);
     try {
       const res = await criarSala(nomeNova.trim());
       toast(`Sala criada! Código: ${res.codigoConvite}`, "success");
@@ -82,12 +85,15 @@ export function SalasPage() {
       carregar();
     } catch (e) {
       toast((e as ApiError).message, "error");
+    } finally {
+      setCriando(false);
     }
   }
 
   async function handleEntrar() {
-    if (!codigoEntrar.trim()) return;
+    if (!codigoEntrar.trim() || entrando) return;
     const codigo = codigoEntrar.trim();
+    setEntrando(true);
     try {
       const res = await entrarSala(codigo);
       toast("Você entrou na sala!", "success");
@@ -96,6 +102,8 @@ export function SalasPage() {
       await abrirSala(res.codigoConvite ?? codigo);
     } catch (e) {
       toast((e as ApiError).message, "error");
+    } finally {
+      setEntrando(false);
     }
   }
 
@@ -147,8 +155,13 @@ export function SalasPage() {
               onChange={(e) => setNomeNova(e.target.value)}
               className="flex-1 bg-surface-container-high rounded-xl px-4 py-3"
             />
-            <button type="button" onClick={handleCriar} className="bg-primary text-on-primary px-6 py-3 rounded-full font-bold">
-              Criar
+            <button
+              type="button"
+              onClick={handleCriar}
+              disabled={criando}
+              className="bg-primary text-on-primary px-6 py-3 rounded-full font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {criando ? "Criando..." : "Criar"}
             </button>
           </div>
         </section>

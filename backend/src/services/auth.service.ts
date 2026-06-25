@@ -125,7 +125,7 @@ export async function buscarPerfil(usuarioId: number) {
       needsUpdate = true;
     } else {
       const diffTime = Math.abs(hoje.getTime() - ultimo.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
       if (diffDays === 1) {
         novaOfensiva += 1;

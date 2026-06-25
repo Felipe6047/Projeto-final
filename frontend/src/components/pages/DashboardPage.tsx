@@ -246,13 +246,12 @@ export function DashboardPage() {
                 {produtos.map(p => (
                   <div key={p.id} className="group bg-card-cream rounded-[1.5rem] sm:rounded-[2rem] p-3 sm:p-4 premium-shadow flex flex-col hover:-translate-y-2 transition-transform duration-300">
                     <div className="relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden mb-3 sm:mb-4 bg-white">
-                      {p.imagem_url ? (
-                        <Image src={p.imagem_url} alt={p.nome} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-surface-variant text-on-surface-variant text-xs sm:text-base">
-                          Sem Imagem
-                        </div>
-                      )}
+                        <img
+                          src={p.imagem_url || "/produto_placeholder.png"}
+                          alt={p.nome}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 absolute inset-0"
+                          onError={(e) => { (e.target as HTMLImageElement).src = "/produto_placeholder.png"; }}
+                        />
                       {p.categoria && (
                         <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-white/90 backdrop-blur-sm text-on-surface text-[8px] sm:text-[10px] font-bold px-2 sm:px-3 py-1 rounded-full uppercase shadow-sm">
                           {p.categoria}
@@ -303,8 +302,8 @@ export function DashboardPage() {
                   return (
                     <div key={t.id} className={`bg-surface-container rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-6 border flex flex-col transition-all ${disable ? 'border-outline-variant/30 opacity-70' : 'border-outline-variant/50 hover:border-primary/50 premium-shadow'}`}>
                       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                        <div className="w-full sm:w-20 h-20 sm:h-20 rounded-xl bg-surface-variant shrink-0 overflow-hidden relative border border-outline-variant/20">
-                          <span className="material-symbols-outlined w-full h-full flex items-center justify-center text-3xl opacity-50">local_offer</span>
+                        <div className="w-full sm:w-20 h-20 sm:h-20 rounded-xl shrink-0 overflow-hidden relative border border-outline-variant/20">
+                          <img src="/cupom_placeholder.png" alt="cupom" className="w-full h-full object-cover" />
                         </div>
                         <div className="flex-1">
                           <span className="inline-block px-2 py-0.5 rounded text-[8px] sm:text-[10px] font-bold bg-secondary-container text-on-secondary-container uppercase mb-1">

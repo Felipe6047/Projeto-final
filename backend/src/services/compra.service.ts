@@ -10,11 +10,19 @@ import {
   verificarConquistas,
 } from "./gamificacao.service";
 import { creditarCashbackCompra } from "./wallet.service";
+import { listarCampanhasAtivas } from "./campanha.service";
 
 export async function registrarCompra(usuarioId: number, valorTotal: number) {
   if (valorTotal <= 0) return { erro: "Valor da compra deve ser positivo" };
 
-  const pontosGerados = Math.floor(valorTotal * env.pontosPorReal);
+  let pontosGerados = Math.floor(valorTotal * env.pontosPorReal);
+
+  const campanhas = await listarCampanhasAtivas(usuarioId);
+  const multiplicadorMaximo = campanhas.reduce((max, c) => Math.max(max, Number(c.multiplicadorPontos ?? 1.0)), 1.0);
+  
+  if (multiplicadorMaximo > 1.0) {
+    pontosGerados = Math.floor(pontosGerados * multiplicadorMaximo);
+  }
 
   return AppDataSource.transaction(async (manager) => {
     const compra = await manager.getRepository(Compra).save({

@@ -8,6 +8,16 @@ import {
   adminInputClass,
 } from "@/components/admin/AdminFormModal";
 import { useToast } from "@/context/ToastContext";
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { AdminShell } from "@/components/admin/AdminShell";
+import {
+  AdminField,
+  AdminFormModal,
+  adminInputClass,
+} from "@/components/admin/AdminFormModal";
+import { useToast } from "@/context/ToastContext";
 import { api } from "@/lib/api";
 
 interface Conquista {
@@ -18,16 +28,10 @@ interface Conquista {
   icone: string;
   meta_tipo: string;
   meta_valor: number;
-  pontos_bonus?: number;
+  pontos_bonus: number;
 }
 
-const META_TIPOS = [
-  { value: "compras_valor", label: "Total gasto (R$)" },
-  { value: "compras_count", label: "Nº de compras" },
-  { value: "trocas_count", label: "Nº de trocas" },
-  { value: "presentes_count", label: "Nº de presentes enviados" },
-  { value: "streak_dias", label: "Streak (dias seguidos)" },
-];
+
 
 const ICONES = [
   "emoji_events", "military_tech", "workspace_premium", "star",
@@ -116,10 +120,6 @@ export function AdminConquistasPage() {
             <div className="flex-1 min-w-0">
               <p className="font-bold truncate">{c.nome}</p>
               <p className="text-xs text-on-surface-variant mt-0.5">{c.descricao}</p>
-              <p className="text-xs text-primary font-semibold mt-2">
-                {META_TIPOS.find(m => m.value === c.meta_tipo)?.label}: {c.meta_valor}
-                {c.pontos_bonus ? ` · +${c.pontos_bonus} pts` : ""}
-              </p>
             </div>
             <button
               type="button"
@@ -197,37 +197,39 @@ export function AdminConquistasPage() {
             ))}
           </div>
         </AdminField>
-        <AdminField label="Meta (tipo)">
-          <select
-            className={adminInputClass()}
-            value={form.meta_tipo}
-            onChange={(e) => setForm({ ...form, meta_tipo: e.target.value })}
-          >
-            {META_TIPOS.map((m) => (
-              <option key={m.value} value={m.value}>{m.label}</option>
-            ))}
-          </select>
-        </AdminField>
         <div className="grid grid-cols-2 gap-4">
+          <AdminField label="Tipo de Meta">
+            <select
+              className={adminInputClass()}
+              value={form.meta_tipo}
+              onChange={(e) => setForm({ ...form, meta_tipo: e.target.value })}
+            >
+              <option value="compras_count">Número de Compras</option>
+              <option value="trocas_count">Número de Trocas</option>
+              <option value="presentes_enviados">Presentes Enviados</option>
+              <option value="presentes_resgatados">Presentes Resgatados</option>
+              <option value="manual">Manual / Sistema Interno</option>
+            </select>
+          </AdminField>
           <AdminField label="Valor da Meta">
             <input
               type="number"
+              min="1"
               className={adminInputClass()}
               value={form.meta_valor}
-              onChange={(e) => setForm({ ...form, meta_valor: Number(e.target.value) })}
-              placeholder="Ex: 5"
-            />
-          </AdminField>
-          <AdminField label="Bônus de Pontos">
-            <input
-              type="number"
-              className={adminInputClass()}
-              value={form.pontos_bonus ?? 0}
-              onChange={(e) => setForm({ ...form, pontos_bonus: Number(e.target.value) })}
-              placeholder="Ex: 100"
+              onChange={(e) => setForm({ ...form, meta_valor: parseInt(e.target.value) || 1 })}
             />
           </AdminField>
         </div>
+        <AdminField label="Bônus de Pontos">
+          <input
+            type="number"
+            min="0"
+            className={adminInputClass()}
+            value={form.pontos_bonus}
+            onChange={(e) => setForm({ ...form, pontos_bonus: parseInt(e.target.value) || 0 })}
+          />
+        </AdminField>
       </AdminFormModal>
     </AdminShell>
   );

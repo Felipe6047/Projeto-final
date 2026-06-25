@@ -89,9 +89,9 @@ router.patch("/propostas/:id", authRequired, async (req, res, next) => {
   }
 });
 
-router.get("/templates", async (_req, res, next) => {
+router.get("/templates", async (req, res, next) => {
   try {
-    return ok(res, await cupomService.listarTemplatesParaResgate());
+    return ok(res, await cupomService.listarTemplatesParaResgate(req.user!.id));
   } catch (e) {
     next(e);
   }

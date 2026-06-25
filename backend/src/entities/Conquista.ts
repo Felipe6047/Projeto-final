@@ -16,4 +16,13 @@ export class Conquista {
 
   @Column({ length: 40 })
   icone!: string;
+
+  @Column({ name: "meta_tipo", length: 40, default: "compras_count" })
+  metaTipo!: string;
+
+  @Column({ name: "meta_valor", type: "int", default: 1 })
+  metaValor!: number;
+
+  @Column({ name: "pontos_bonus", type: "int", default: 0 })
+  pontosBonus!: number;
 }

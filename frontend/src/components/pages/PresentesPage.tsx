@@ -34,6 +34,7 @@ type Produto = {
   preco_pontos: number;
   estoque: number;
   imagem_url?: string | null;
+  categoria?: string | null;
 };
 
 const ETAPAS = ["Produtos", "Carrinho", "Destinatário", "Pagamento", "Resumo"] as const;
@@ -268,10 +269,25 @@ export function PresentesPage() {
   );
   
   const cupomObj = meusCupons.find(c => String(c.id) === cupomSelecionadoId);
-  const isFreteGratis = cupomObj?.categoria?.toLowerCase().includes("frete");
+  const cupomCategoria = cupomObj?.categoria?.toLowerCase() || "";
+  const isFreteGratis = cupomCategoria.includes("frete");
+  const isGeral = cupomCategoria === "geral";
   
-  const descontoPercent = (cupomObj && !isFreteGratis) ? (cupomObj.desconto_percentual || 10) : 0;
-  const descontoCupomValor = Math.round((totalReais * descontoPercent) / 100);
+  let descontoCupomValor = 0;
+
+  if (cupomObj && !isFreteGratis) {
+    let valorElegivel = 0;
+    if (isGeral) {
+      valorElegivel = totalReais;
+    } else {
+      valorElegivel = carrinho
+        .filter(i => (i.produto.categoria?.toLowerCase() || "") === cupomCategoria)
+        .reduce((sum, i) => sum + Number(i.produto.preco_reais) * i.qtd, 0);
+    }
+    const descontoPercent = cupomObj.desconto_percentual || 10;
+    descontoCupomValor = Math.round((valorElegivel * descontoPercent) / 100);
+  }
+
   const freteBase = (totalReais > 0 && !isFreteGratis) ? freteCalc : 0;
   
   const subtotalReais = Math.max(0, totalReais - descontoCupomValor);
@@ -562,11 +578,7 @@ export function PresentesPage() {
                       return (
                         <div ref={isLast ? lastElementRef : null} key={p.id} className={`bg-card-cream flex flex-col rounded-3xl overflow-hidden premium-shadow transition-all ${cartItem ? "ring-2 ring-primary" : ""}`}>
                           <div className="h-32 lg:h-40 bg-secondary-container flex items-center justify-center relative">
-                            {p.imagem_url ? (
-                              <img src={p.imagem_url} alt={p.nome} className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="material-symbols-outlined text-primary text-4xl lg:text-5xl opacity-40">redeem</span>
-                            )}
+                            <img src={p.imagem_url || "/produto_placeholder.png"} alt={p.nome} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "/produto_placeholder.png"; }} />
                             {cartItem && <span className="absolute top-2 right-2 lg:top-4 lg:right-4 bg-primary text-on-primary text-[10px] lg:text-xs font-bold px-2 lg:px-3 py-1 rounded-full">No carrinho ({cartItem.qtd}x)</span>}
                           </div>
                           <div className="p-4 lg:p-6 flex flex-col flex-1">
@@ -604,13 +616,7 @@ export function PresentesPage() {
                       <div key={c.produto.id} className="flex flex-col sm:flex-row justify-between sm:items-center bg-surface-container-high p-4 rounded-2xl gap-4">
                         <div className="flex items-center gap-4 flex-1">
                           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-surface-container-low overflow-hidden flex-shrink-0 border border-outline-variant/20">
-                            {c.produto.imagem_url ? (
-                              <img src={c.produto.imagem_url} alt={c.produto.nome} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center opacity-40">
-                                <span className="material-symbols-outlined text-3xl">inventory_2</span>
-                              </div>
-                            )}
+                              <img src={c.produto.imagem_url || "/produto_placeholder.png"} alt={c.produto.nome} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "/produto_placeholder.png"; }} />
                           </div>
                           <div>
                             <p className="font-bold text-base sm:text-lg">{c.produto.nome}</p>

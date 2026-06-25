@@ -22,7 +22,17 @@ const empty: CampanhaAdmin = {
   inicio_em: "",
   fim_em: "",
   ativa: true,
+  multiplicador_pontos: 1.0,
+  desconto_resgate_cupons: 0,
 };
+
+const NIVEIS = [
+  { slug: "bronze", label: "Bronze" },
+  { slug: "prata", label: "Prata" },
+  { slug: "ouro", label: "Ouro" },
+  { slug: "platina", label: "Platina" },
+  { slug: "diamante", label: "Diamante" }
+];
 
 export function AdminCampanhasPage() {
   const { toast } = useToast();
@@ -58,6 +68,8 @@ export function AdminCampanhasPage() {
       fim_em: String(c.fim_em).slice(0, 16),
       ativa: Boolean(c.ativa),
       segmento_json: c.segmento_json,
+      multiplicador_pontos: c.multiplicador_pontos ?? 1.0,
+      desconto_resgate_cupons: c.desconto_resgate_cupons ?? 0,
     });
     setEditId(c.id!);
     setOpen(true);
@@ -187,6 +199,65 @@ export function AdminCampanhasPage() {
           />
           Campanha ativa
         </label>
+
+        <div className="border-t border-outline-variant/20 pt-4 mt-4 space-y-4">
+          <h3 className="font-bold text-sm text-on-surface">Benefícios (Opcional)</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <AdminField label="Multiplicador de Pontos (ex: 2.0 = Dobro)">
+              <input
+                type="number"
+                step="0.1"
+                min="1.0"
+                className={adminInputClass()}
+                value={form.multiplicador_pontos}
+                onChange={(e) => setForm({ ...form, multiplicador_pontos: Number(e.target.value) })}
+              />
+            </AdminField>
+            <AdminField label="Desconto Resgate (%)">
+              <input
+                type="number"
+                step="1"
+                min="0"
+                max="100"
+                className={adminInputClass()}
+                value={form.desconto_resgate_cupons}
+                onChange={(e) => setForm({ ...form, desconto_resgate_cupons: Number(e.target.value) })}
+              />
+            </AdminField>
+          </div>
+        </div>
+
+        <div className="border-t border-outline-variant/20 pt-4 mt-4">
+          <h3 className="font-bold text-sm text-on-surface mb-2">Público-Alvo (Segmentação)</h3>
+          <p className="text-xs text-on-surface-variant mb-4">
+            Selecione para restringir. Deixe tudo desmarcado para valer para todos.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {NIVEIS.map(n => {
+              const segmentos = (form.segmento_json as any)?.nivel_slug || [];
+              const selecionado = segmentos.includes(n.slug);
+              return (
+                <label key={n.slug} className="flex items-center gap-2 text-sm bg-surface-container-high px-3 py-1.5 rounded-full border border-outline-variant/30 cursor-pointer hover:bg-surface-variant">
+                  <input
+                    type="checkbox"
+                    className="accent-primary w-4 h-4"
+                    checked={selecionado}
+                    onChange={(e) => {
+                      let novos = [...segmentos];
+                      if (e.target.checked) novos.push(n.slug);
+                      else novos = novos.filter(s => s !== n.slug);
+                      setForm({
+                        ...form,
+                        segmento_json: novos.length ? { nivel_slug: novos } : undefined
+                      });
+                    }}
+                  />
+                  {n.label}
+                </label>
+              );
+            })}
+          </div>
+        </div>
       </AdminFormModal>
     </AdminShell>
   );

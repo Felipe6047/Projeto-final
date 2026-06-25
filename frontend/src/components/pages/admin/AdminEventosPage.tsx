@@ -126,6 +126,12 @@ export function AdminEventosPage() {
             </div>
           </div>
         ))}
+        {lista.length === 0 && (
+          <div className="text-center py-12 text-on-surface-variant bg-surface-container-low rounded-xl border border-outline-variant/20">
+            <span className="material-symbols-outlined text-5xl mb-2">event_busy</span>
+            <p>Nenhum evento sazonal cadastrado.</p>
+          </div>
+        )}
       </div>
       <AdminFormModal
         open={open}

@@ -17,10 +17,9 @@ async function seed() {
   const nivelRepo = AppDataSource.getRepository(NivelFidelidade);
   const countNiveis = await nivelRepo.count();
   if (countNiveis > 0) {
-    console.log("Seed já aplicado — nenhuma alteração.");
-    await AppDataSource.destroy();
-    return;
-  }
+    console.log("Níveis já existem. Pulando criação de dados base...");
+  } else {
+    // ---- BLOCO BASE (Níveis, Conquistas, Produtos, Missões, Usuários) ----
 
   await nivelRepo.save([
     {
@@ -187,7 +186,7 @@ async function seed() {
       valorMinimoCompra: "150.00",
       diasValidade: 30,
       ativo: true,
-      imagemUrl: "/images/cupons/eletronicos.png",
+      imagemUrl: null,
       precoPontos: 500,
       limitePorUsuario: 2,
     },
@@ -199,7 +198,7 @@ async function seed() {
       valorMinimoCompra: "80.00",
       diasValidade: 45,
       ativo: true,
-      imagemUrl: "/images/cupons/cashback.png",
+      imagemUrl: null,
       precoPontos: 400,
     },
     {
@@ -210,7 +209,7 @@ async function seed() {
       valorMinimoCompra: "99.00",
       diasValidade: 15,
       ativo: true,
-      imagemUrl: "/images/cupons/frete.png",
+      imagemUrl: null,
       precoPontos: 600,
     },
     {
@@ -221,7 +220,7 @@ async function seed() {
       valorMinimoCompra: null,
       diasValidade: 30,
       ativo: true,
-      imagemUrl: "/images/cupons/moda.png",
+      imagemUrl: null,
       precoPontos: 300,
     },
     {
@@ -232,7 +231,7 @@ async function seed() {
       valorMinimoCompra: "200.00",
       diasValidade: 60,
       ativo: true,
-      imagemUrl: "/images/cupons/vip.png",
+      imagemUrl: null,
       precoPontos: 1500,
       limiteTotal: 50,
     },
@@ -244,7 +243,7 @@ async function seed() {
       valorMinimoCompra: "300.00",
       diasValidade: 20,
       ativo: true,
-      imagemUrl: "/images/cupons/games.png",
+      imagemUrl: null,
       precoPontos: 800,
     },
     {
@@ -255,7 +254,7 @@ async function seed() {
       valorMinimoCompra: "250.00",
       diasValidade: 10,
       ativo: true,
-      imagemUrl: "/images/cupons/frete_expresso.png",
+      imagemUrl: null,
       precoPontos: 1000,
     },
     {
@@ -266,7 +265,7 @@ async function seed() {
       valorMinimoCompra: null,
       diasValidade: 90,
       ativo: true,
-      imagemUrl: "/images/cupons/5off.png",
+      imagemUrl: null,
       precoPontos: 200,
     },
     {
@@ -277,7 +276,7 @@ async function seed() {
       valorMinimoCompra: "100.00",
       diasValidade: 30,
       ativo: true,
-      imagemUrl: "/images/cupons/leve2.png",
+      imagemUrl: null,
       precoPontos: 750,
       limitePorUsuario: 1,
     },
@@ -289,7 +288,7 @@ async function seed() {
       valorMinimoCompra: "1500.00",
       diasValidade: 15,
       ativo: true,
-      imagemUrl: "/images/cupons/tv.png",
+      imagemUrl: null,
       precoPontos: 2500,
       limiteTotal: 20,
     },
@@ -429,7 +428,7 @@ async function seed() {
       estoque: 20,
       categoria: "Entretenimento",
       ativo: true,
-      imagemUrl: "https://images.unsplash.com/photo-1610890716171-6b1bb98ffaed?w=400&h=400&fit=crop",
+      imagemUrl: "/jogo_tabuleiro.png",
     },
     {
       nome: "Vale Jantar Bistrô",
@@ -575,116 +574,56 @@ async function seed() {
     },
   ]);
 
-  const inicio = new Date();
-  inicio.setDate(inicio.getDate() - 1);
-  const fimCampanha = new Date();
-  fimCampanha.setDate(fimCampanha.getDate() + 30);
+  } // Fim do bloco base
 
-  await AppDataSource.getRepository(Campanha).save({
-    titulo: "Boas-vindas Bronze",
-    descricao: "Bônus para novos membros nível Bronze",
-    segmentoJson: { nivel_slug: ["bronze"] },
-    inicioEm: inicio,
-    fimEm: fimCampanha,
-    ativa: true,
-  });
+  // ---- BLOCO AVULSO (Campanhas, Eventos, Cartões) ----
+  const countCampanhas = await AppDataSource.getRepository(Campanha).count();
+  if (countCampanhas === 0) {
+    console.log("Inserindo Campanha...");
+    const inicio = new Date();
+    const fimCampanha = new Date();
+    fimCampanha.setDate(fimCampanha.getDate() + 30);
 
-  const validade25 = new Date();
-  validade25.setDate(validade25.getDate() + 25);
-  const validade40 = new Date();
-  validade40.setDate(validade40.getDate() + 40);
-  const validade20 = new Date();
-  validade20.setDate(validade20.getDate() + 20);
-  const validade10 = new Date();
-  validade10.setDate(validade10.getDate() + 10);
+    await AppDataSource.getRepository(Campanha).save({
+      titulo: "Boas-vindas Bronze",
+      descricao: "Bônus para novos membros nível Bronze",
+      segmentoJson: { nivel_slug: ["bronze"] },
+      inicioEm: inicio,
+      fimEm: fimCampanha,
+      ativa: true,
+      multiplicadorPontos: 1.5,
+      descontoResgateCupons: 10,
+    });
+  }
 
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  const countEventos = await AppDataSource.getRepository(EventoSazonal).count();
+  if (countEventos === 0) {
+    console.log("Inserindo EventoSazonal...");
+    const fimEvento = new Date();
+    fimEvento.setDate(fimEvento.getDate() + 7);
 
-  await AppDataSource.getRepository(CupomUsuario).save([
-    {
-      usuarioId: usuarios[0].id,
-      templateId: templates[0].id,
-      codigo: "FRIK-ANA-001",
-      status: "disponivel",
-      validadeAte: fmt(validade25),
-      origem: "compra",
-    },
-    {
-      usuarioId: usuarios[0].id,
-      templateId: templates[1].id,
-      codigo: "FRIK-ANA-002",
-      status: "disponivel",
-      validadeAte: fmt(validade40),
-      origem: "missao",
-    },
-    {
-      usuarioId: usuarios[1].id,
-      templateId: templates[0].id,
-      codigo: "FRIK-BRU-001",
-      status: "oferecido_troca",
-      validadeAte: fmt(validade20),
-      origem: "compra",
-    },
-    {
-      usuarioId: usuarios[2].id,
-      templateId: templates[2].id,
-      codigo: "FRIK-CAR-001",
-      status: "disponivel",
-      validadeAte: fmt(validade10),
-      origem: "campanha",
-    },
-  ]);
+    await AppDataSource.getRepository(EventoSazonal).save({
+      titulo: "Semana do Troca-Troca",
+      descricao: "+2 trocas extras para todos os níveis!",
+      trocasExtras: 2,
+      inicioEm: new Date(),
+      fimEm: fimEvento,
+      ativo: true,
+    });
+  }
 
-  const fimEvento = new Date();
-  fimEvento.setDate(fimEvento.getDate() + 7);
+  const countCartoes = await AppDataSource.getRepository(CartaoCredito).count();
+  if (countCartoes === 0) {
+    console.log("Inserindo CartaoCredito...");
+    await AppDataSource.getRepository(CartaoCredito).save([
+      { usuarioId: 1, apelido: "Meu Cartão (Mastercard)", numero: "5582951614393600", nomeTitular: "ANA SILVA", validade: "02/27", cvv: "945", principal: true },
+      { usuarioId: 2, apelido: "Cartão Visa", numero: "4539579713773567", nomeTitular: "BRUNO COSTA", validade: "06/28", cvv: "696", principal: true },
+      { usuarioId: 3, apelido: "Master Principal", numero: "5290030760984091", nomeTitular: "CARLA MENDES", validade: "02/27", cvv: "112", principal: true },
+      { usuarioId: 4, apelido: "Cartão Business", numero: "5108666834191510", nomeTitular: "ADMIN FRIK", validade: "12/27", cvv: "900", principal: true },
+    ]);
+  }
 
-  await AppDataSource.getRepository(EventoSazonal).save({
-    titulo: "Semana do Troca-Troca",
-    descricao: "+2 trocas extras para todos os níveis!",
-    trocasExtras: 2,
-    inicioEm: new Date(),
-    fimEm: fimEvento,
-    ativo: true,
-  });
 
-  await AppDataSource.getRepository(CartaoCredito).save([
-    {
-      usuarioId: 1, // Ana
-      apelido: "Meu Cartão (Mastercard)",
-      numero: "5582951614393600",
-      nomeTitular: "ANA SILVA",
-      validade: "02/27",
-      cvv: "945",
-      principal: true,
-    },
-    {
-      usuarioId: 2, // Bruno
-      apelido: "Cartão Visa",
-      numero: "4539579713773567",
-      nomeTitular: "BRUNO COSTA",
-      validade: "06/28",
-      cvv: "696",
-      principal: true,
-    },
-    {
-      usuarioId: 3, // Carla
-      apelido: "Master Principal",
-      numero: "5290030760984091",
-      nomeTitular: "CARLA MENDES",
-      validade: "02/27",
-      cvv: "112",
-      principal: true,
-    },
-    {
-      usuarioId: 4, // Admin
-      apelido: "Cartão Business",
-      numero: "5108666834191510",
-      nomeTitular: "ADMIN FRIK",
-      validade: "12/27",
-      cvv: "900",
-      principal: true,
-    },
-  ]);
 
   console.log("Seed aplicado com sucesso.");
   await AppDataSource.destroy();
@@ -694,3 +633,4 @@ seed().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+

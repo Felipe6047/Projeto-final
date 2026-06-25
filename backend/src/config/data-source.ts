@@ -32,6 +32,7 @@ export const AppDataSource = new DataSource({
     CampanhaBonus1748266300000,
     ConquistaGamificacao1748266400000,
   ],
+  dropSchema: true, // TODO: REMOVE THIS AFTER DEPLOY
   synchronize: false,
   logging: env.nodeEnv === "development",
 });

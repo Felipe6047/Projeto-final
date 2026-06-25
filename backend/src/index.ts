@@ -11,9 +11,13 @@ async function bootstrap() {
     // Run migrations
     await AppDataSource.runMigrations();
     console.log("Migrations aplicadas.");
-    // Run seed
-    await runSeed(AppDataSource);
-    console.log("Seed concluído.");
+    // Run seed (non-fatal: errors here don't stop the server)
+    try {
+      await runSeed(AppDataSource);
+      console.log("Seed concluído.");
+    } catch (seedErr) {
+      console.warn("[FRIK] Seed encontrou erro (não-fatal):", seedErr);
+    }
   } catch (err) {
     console.error("\n[FRIK] Falha ao inicializar o banco de dados.\n");
     console.error(err);

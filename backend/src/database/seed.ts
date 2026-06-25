@@ -618,13 +618,24 @@ async function seed(ds?: DataSource) {
 
   const countCartoes = await source.getRepository(CartaoCredito).count();
   if (countCartoes === 0) {
-    console.log("Inserindo CartaoCredito...");
-    await source.getRepository(CartaoCredito).save([
-      { usuarioId: 1, apelido: "Meu Cartão (Mastercard)", numero: "5582951614393600", nomeTitular: "ANA SILVA", validade: "02/27", cvv: "945", principal: true },
-      { usuarioId: 2, apelido: "Cartão Visa", numero: "4539579713773567", nomeTitular: "BRUNO COSTA", validade: "06/28", cvv: "696", principal: true },
+    // Verify referenced users exist before inserting cartoes
+    const usuarioRepo = source.getRepository(Usuario);
+    const usuariosExistentes = await usuarioRepo.find({ select: ["id"] });
+    const idsExistentes = new Set(usuariosExistentes.map((u) => u.id));
+
+    const cartaoData = [
+      { usuarioId: 1, apelido: "Meu Cart\u00e3o (Mastercard)", numero: "5582951614393600", nomeTitular: "ANA SILVA", validade: "02/27", cvv: "945", principal: true },
+      { usuarioId: 2, apelido: "Cart\u00e3o Visa", numero: "4539579713773567", nomeTitular: "BRUNO COSTA", validade: "06/28", cvv: "696", principal: true },
       { usuarioId: 3, apelido: "Master Principal", numero: "5290030760984091", nomeTitular: "CARLA MENDES", validade: "02/27", cvv: "112", principal: true },
-      { usuarioId: 4, apelido: "Cartão Business", numero: "5108666834191510", nomeTitular: "ADMIN FRIK", validade: "12/27", cvv: "900", principal: true },
-    ]);
+      { usuarioId: 4, apelido: "Cart\u00e3o Business", numero: "5108666834191510", nomeTitular: "ADMIN FRIK", validade: "12/27", cvv: "900", principal: true },
+    ].filter((c) => idsExistentes.has(c.usuarioId));
+
+    if (cartaoData.length > 0) {
+      console.log(`Inserindo ${cartaoData.length} CartaoCredito...`);
+      await source.getRepository(CartaoCredito).save(cartaoData);
+    } else {
+      console.log("Usuários de demo não existem, pulando CartaoCredito...");
+    }
   }
 
 

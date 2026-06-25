@@ -1,17 +1,21 @@
 import "reflect-metadata";
 import app from "./app";
 import { env } from "./config/env";
-import { initializeDatabase } from "./config/database";
+import { AppDataSource, initializeDatabase } from "./config/database";
+import { runSeed } from "./database/seed";
 
 async function bootstrap() {
   try {
     await initializeDatabase();
     console.log("MySQL conectado (TypeORM)");
+    // Run migrations
+    await AppDataSource.runMigrations();
+    console.log("Migrations aplicadas.");
+    // Run seed
+    await runSeed(AppDataSource);
+    console.log("Seed concluído.");
   } catch (err) {
-    console.error("\n[FRIK] Falha ao conectar no MySQL.\n");
-    console.error("1. Crie/edite o arquivo backend/.env (copie de .env.example)");
-    console.error("2. Defina DB_PASSWORD com a senha do seu MySQL (Workbench)");
-    console.error("3. Execute: npm run db:migrate && npm run db:seed\n");
+    console.error("\n[FRIK] Falha ao inicializar o banco de dados.\n");
     console.error(err);
     process.exit(1);
   }

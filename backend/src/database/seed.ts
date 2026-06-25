@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import { DataSource } from "typeorm";
 import { AppDataSource } from "../config/data-source";
 import { NivelFidelidade } from "../entities/NivelFidelidade";
 import { Conquista } from "../entities/Conquista";
@@ -11,10 +12,13 @@ import { CupomUsuario } from "../entities/CupomUsuario";
 import { EventoSazonal } from "../entities/EventoSazonal";
 import { CartaoCredito } from "../entities/CartaoCredito";
 
-async function seed() {
-  await AppDataSource.initialize();
+async function seed(ds?: DataSource) {
+  const source = ds ?? AppDataSource;
+  if (!source.isInitialized) {
+    await source.initialize();
+  }
 
-  const nivelRepo = AppDataSource.getRepository(NivelFidelidade);
+  const nivelRepo = source.getRepository(NivelFidelidade);
   const countNiveis = await nivelRepo.count();
   if (countNiveis > 0) {
     console.log("Níveis já existem. Pulando criação de dados base...");
@@ -84,7 +88,7 @@ async function seed() {
     },
   ]);
 
-  await AppDataSource.getRepository(Conquista).save([
+  await source.getRepository(Conquista).save([
     {
       slug: "amigo_ouro",
       nome: "Amigo Ouro",
@@ -177,7 +181,7 @@ async function seed() {
     },
   ]);
 
-  const templates = await AppDataSource.getRepository(CupomTemplate).save([
+  const templates = await source.getRepository(CupomTemplate).save([
     {
       titulo: "20% off Eletrônicos",
       descricao: "Desconto em eletrônicos selecionados",
@@ -294,7 +298,7 @@ async function seed() {
     },
   ] as Partial<CupomTemplate>[]);
 
-  await AppDataSource.getRepository(Produto).save([
+  await source.getRepository(Produto).save([
     {
       nome: "Caneca FRIK",
       descricao: "Caneca personalizada 350ml com logo exclusivo",
@@ -441,7 +445,7 @@ async function seed() {
     },
   ]);
 
-  await AppDataSource.getRepository(Missao).save([
+  await source.getRepository(Missao).save([
     {
       titulo: "Primeira troca",
       descricao: "Realize sua primeira troca de cupom",
@@ -527,7 +531,7 @@ async function seed() {
   const senhaHash =
     "$2b$10$/UGd4aICWq8pRbItFREnYufRhToMw5LydAu8O5nnO5wwxVV2sy1Ma"; // senha123
 
-  const usuarios = await AppDataSource.getRepository(Usuario).save([
+  const usuarios = await source.getRepository(Usuario).save([
     {
       nome: "Ana Silva",
       email: "ana@frik.demo",
@@ -577,14 +581,14 @@ async function seed() {
   } // Fim do bloco base
 
   // ---- BLOCO AVULSO (Campanhas, Eventos, Cartões) ----
-  const countCampanhas = await AppDataSource.getRepository(Campanha).count();
+  const countCampanhas = await source.getRepository(Campanha).count();
   if (countCampanhas === 0) {
     console.log("Inserindo Campanha...");
     const inicio = new Date();
     const fimCampanha = new Date();
     fimCampanha.setDate(fimCampanha.getDate() + 30);
 
-    await AppDataSource.getRepository(Campanha).save({
+    await source.getRepository(Campanha).save({
       titulo: "Boas-vindas Bronze",
       descricao: "Bônus para novos membros nível Bronze",
       segmentoJson: { nivel_slug: ["bronze"] },
@@ -596,13 +600,13 @@ async function seed() {
     });
   }
 
-  const countEventos = await AppDataSource.getRepository(EventoSazonal).count();
+  const countEventos = await source.getRepository(EventoSazonal).count();
   if (countEventos === 0) {
     console.log("Inserindo EventoSazonal...");
     const fimEvento = new Date();
     fimEvento.setDate(fimEvento.getDate() + 7);
 
-    await AppDataSource.getRepository(EventoSazonal).save({
+    await source.getRepository(EventoSazonal).save({
       titulo: "Semana do Troca-Troca",
       descricao: "+2 trocas extras para todos os níveis!",
       trocasExtras: 2,
@@ -612,10 +616,10 @@ async function seed() {
     });
   }
 
-  const countCartoes = await AppDataSource.getRepository(CartaoCredito).count();
+  const countCartoes = await source.getRepository(CartaoCredito).count();
   if (countCartoes === 0) {
     console.log("Inserindo CartaoCredito...");
-    await AppDataSource.getRepository(CartaoCredito).save([
+    await source.getRepository(CartaoCredito).save([
       { usuarioId: 1, apelido: "Meu Cartão (Mastercard)", numero: "5582951614393600", nomeTitular: "ANA SILVA", validade: "02/27", cvv: "945", principal: true },
       { usuarioId: 2, apelido: "Cartão Visa", numero: "4539579713773567", nomeTitular: "BRUNO COSTA", validade: "06/28", cvv: "696", principal: true },
       { usuarioId: 3, apelido: "Master Principal", numero: "5290030760984091", nomeTitular: "CARLA MENDES", validade: "02/27", cvv: "112", principal: true },
@@ -626,7 +630,12 @@ async function seed() {
 
 
   console.log("Seed aplicado com sucesso.");
-  await AppDataSource.destroy();
+  // Only destroy if we initialized the connection ourselves
+  if (!ds) await source.destroy();
+}
+
+export async function runSeed(ds?: DataSource) {
+  await seed(ds);
 }
 
 seed().catch((err) => {

@@ -300,8 +300,8 @@ async function seed(ds?: DataSource) {
       precoPontos: 2500,
       limiteTotal: 20,
     },
-  }
-
+  ] as Partial<CupomTemplate>[]);
+}
   if (await source.getRepository(Produto).count() === 0) {
     console.log("Inserindo Produtos...");
     await source.getRepository(Produto).save([

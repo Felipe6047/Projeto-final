@@ -16,6 +16,7 @@ export const env = {
     user: process.env.DB_USER ?? "root",
     password: process.env.DB_PASSWORD ?? "",
     database: process.env.DB_NAME ?? "frik",
+    ssl: process.env.DB_SSL === "true" || process.env.NODE_ENV === "production",
   },
   jwt: {
     secret: process.env.JWT_SECRET ?? "dev-secret-change-me",

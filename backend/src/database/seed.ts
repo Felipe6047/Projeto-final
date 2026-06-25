@@ -19,13 +19,9 @@ async function seed(ds?: DataSource) {
   }
 
   const nivelRepo = source.getRepository(NivelFidelidade);
-  const countNiveis = await nivelRepo.count();
-  if (countNiveis > 0) {
-    console.log("Níveis já existem. Pulando criação de dados base...");
-  } else {
-    // ---- BLOCO BASE (Níveis, Conquistas, Produtos, Missões, Usuários) ----
-
-  await nivelRepo.save([
+  if (await nivelRepo.count() === 0) {
+    console.log("Inserindo Níveis...");
+    await nivelRepo.save([
     {
       nome: "Bronze",
       slug: "bronze",
@@ -88,7 +84,11 @@ async function seed(ds?: DataSource) {
     },
   ]);
 
-  await source.getRepository(Conquista).save([
+  }
+
+  if (await source.getRepository(Conquista).count() === 0) {
+    console.log("Inserindo Conquistas...");
+    await source.getRepository(Conquista).save([
     {
       slug: "amigo_ouro",
       nome: "Amigo Ouro",
@@ -181,7 +181,11 @@ async function seed(ds?: DataSource) {
     },
   ]);
 
-  const templates = await source.getRepository(CupomTemplate).save([
+  }
+
+  if (await source.getRepository(CupomTemplate).count() === 0) {
+    console.log("Inserindo CupomTemplates...");
+    await source.getRepository(CupomTemplate).save([
     {
       titulo: "20% off Eletrônicos",
       descricao: "Desconto em eletrônicos selecionados",
@@ -296,9 +300,11 @@ async function seed(ds?: DataSource) {
       precoPontos: 2500,
       limiteTotal: 20,
     },
-  ] as Partial<CupomTemplate>[]);
+  }
 
-  await source.getRepository(Produto).save([
+  if (await source.getRepository(Produto).count() === 0) {
+    console.log("Inserindo Produtos...");
+    await source.getRepository(Produto).save([
     {
       nome: "Caneca FRIK",
       descricao: "Caneca personalizada 350ml com logo exclusivo",
@@ -445,7 +451,11 @@ async function seed(ds?: DataSource) {
     },
   ]);
 
-  await source.getRepository(Missao).save([
+  }
+
+  if (await source.getRepository(Missao).count() === 0) {
+    console.log("Inserindo Missões...");
+    await source.getRepository(Missao).save([
     {
       titulo: "Primeira troca",
       descricao: "Realize sua primeira troca de cupom",
@@ -527,11 +537,14 @@ async function seed(ds?: DataSource) {
       ativa: true,
     },
   ]);
+  }
 
   const senhaHash =
     "$2b$10$/UGd4aICWq8pRbItFREnYufRhToMw5LydAu8O5nnO5wwxVV2sy1Ma"; // senha123
 
-  const usuarios = await source.getRepository(Usuario).save([
+  if (await source.getRepository(Usuario).count() === 0) {
+    console.log("Inserindo Usuários Demo...");
+    await source.getRepository(Usuario).save([
     {
       nome: "Ana Silva",
       email: "ana@frik.demo",
@@ -577,18 +590,16 @@ async function seed(ds?: DataSource) {
       ativo: true,
     },
   ]);
-
-  } // Fim do bloco base
+  }
 
   // ---- BLOCO AVULSO (Campanhas, Eventos, Cartões) ----
-  const countCampanhas = await source.getRepository(Campanha).count();
-  if (countCampanhas === 0) {
-    console.log("Inserindo Campanha...");
+  if (await source.getRepository(Campanha).count() === 0) {
+    console.log("Inserindo Campanhas...");
     const inicio = new Date();
     const fimCampanha = new Date();
     fimCampanha.setDate(fimCampanha.getDate() + 30);
 
-    await source.getRepository(Campanha).save({
+    await source.getRepository(Campanha).save([{
       titulo: "Boas-vindas Bronze",
       descricao: "Bônus para novos membros nível Bronze",
       segmentoJson: { nivel_slug: ["bronze"] },
@@ -597,23 +608,22 @@ async function seed(ds?: DataSource) {
       ativa: true,
       multiplicadorPontos: 1.5,
       descontoResgateCupons: 10,
-    });
+    }]);
   }
 
-  const countEventos = await source.getRepository(EventoSazonal).count();
-  if (countEventos === 0) {
-    console.log("Inserindo EventoSazonal...");
+  if (await source.getRepository(EventoSazonal).count() === 0) {
+    console.log("Inserindo Eventos Sazonais...");
     const fimEvento = new Date();
     fimEvento.setDate(fimEvento.getDate() + 7);
 
-    await source.getRepository(EventoSazonal).save({
+    await source.getRepository(EventoSazonal).save([{
       titulo: "Semana do Troca-Troca",
       descricao: "+2 trocas extras para todos os níveis!",
       trocasExtras: 2,
       inicioEm: new Date(),
       fimEm: fimEvento,
       ativo: true,
-    });
+    }]);
   }
 
   const countCartoes = await source.getRepository(CartaoCredito).count();
